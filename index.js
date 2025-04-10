@@ -57,7 +57,7 @@ wss.on("connection", (ws) => {
   });
 });
 
-const userChangeStream = User.watch(); //Sema Modeli İzler.
+const userChangeStream = User.watch();
 
 userChangeStream.on("change", (change) => {
   var changedUserId = change.documentKey._id.toString();

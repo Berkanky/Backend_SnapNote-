@@ -12,9 +12,17 @@ const AuthenticateJWTToken = async (req, res, next) => {
   jwt.verify(token, secret_key, async(err, user) => {
     if (err) {
 
-      var EMailAddress = req.params.EMailAddress;
-      var filter = {EMailAddress: EMailAddress};
+      var { EMailAddress} = req.params;
+      var filter = {EMailAddress};
       var Auth = await User.findOne(filter);
+
+      var update = {
+        $set:{
+          Active: false
+        }
+      };
+      
+      await User.findOneAndUpdate(filter, update);
 
       var isTokenInserted = await Token.findOne({UserId: Auth.id, JWTToken: token});
       if(!isTokenInserted){

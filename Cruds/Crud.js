@@ -519,9 +519,8 @@ app.post(
       .status(200)
       .json({ 
         message: " Giriş başarıyla gerçekleştirildi, kullanıcı oturumu aktif.  ", 
-        token, 
-        Auth, 
-        id: Auth.id
+        token,
+        EMailAddress: Auth.EMailAddress
       });
   })
 );
