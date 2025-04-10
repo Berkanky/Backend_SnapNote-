@@ -37,49 +37,34 @@ app.use((err, req, res, next) => {
 //app.listen(PORT, () => {}); // ws için buraya gerek yok ws yi kaldıracağın zaman açarsın geri.
 
 const server = http.createServer(app);
-console.log("WS Created Server : ", server);
 const WebSocket = require("ws");
+
 const wss = new WebSocket.Server({ server });
 
 wss.on("connection", (ws) => {
-  console.log("Yeni bir WebSocket bağlantısı sağlandı.");
   ws.on("message", (msg) => {
     try {
       var data = JSON.parse(msg);
       if (data.UserData) {
         ws.userId = data.UserData._id;
-        console.log("Kullanıcı kimliği atandı:", data.UserData._id);
       } else {
-
-        console.log("Gelen mesaj:", msg);
-        ws.send(`Sunucudan echo: ${msg}`);
+        ws.send(JSON.stringify({payload:{}}));
       }
     } catch (error) {
       console.error("Mesaj parse hatası:", error);
     }
+    ws.send(JSON.stringify({payload:{}}));
   });
-  
-  ws.send("WebSocket bağlantısı başarılı! Hoş geldiniz.");
 });
 
-const userChangeStream = User.watch();
+const userChangeStream = User.watch(); //Sema Modeli İzler.
 
 userChangeStream.on("change", (change) => {
-  console.log("User şeması değişikliği:", change);
   var changedUserId = change.documentKey._id.toString();
-
   wss.clients.forEach((client) => {
-    if (
-      client.readyState === WebSocket.OPEN &&
-      client.userId === changedUserId
-    ) {
-      client.send(JSON.stringify({ type: "UserUpdate", payload: change.updateDescription.updatedFields }));
-    }
+    if ( client.readyState === WebSocket.OPEN && client.userId === changedUserId) client.send(JSON.stringify({ type: "UserUpdate", payload: change.updateDescription.updatedFields }));
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Server ${PORT} portunda çalışıyor...`);
-});
-
+server.listen(PORT, () => {});
 module.exports = app;
