@@ -20,6 +20,7 @@
     "node-cache": "^5.1.2",
     "nodemailer": "^6.10.0",
     "nodemailer-sendgrid": "^1.0.3",
-    "openai": "^4.87.3"
+    "openai": "^4.87.3",
+    "ws": "^8.18.1"
   }
 }
