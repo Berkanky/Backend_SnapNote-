@@ -253,7 +253,7 @@ app.get(
 
     ServerCache.set(cacheKey, Auth);
 
-    return res.status(200).json({ message: " Kullanıcı oturumu başarıyla doğrulandı. ", Auth: Auth });
+    return res.status(200).json({ message: " Kullanıcı oturumu başarıyla doğrulandı, notlarınızı tutmaya devam edebilirsiniz. ", Auth: Auth });
   })
 );
 
