@@ -515,12 +515,15 @@ app.post(
     var token = await CreateJWTToken(req, res, Auth.EMailAddress, Auth.id);
     if(!token) return res.status(400).json({message:' Session token oluşturulamadı, lüfen tekrar deneyiniz.'});
 
+    var LogedAuth = await User.findOne(filter).lean();
+    LogedAuth.ProfileImage = aes256Decrypt(LogedAuth.ProfileImage, LogedAuth._id.toString());
+
     return res
       .status(200)
       .json({ 
         message: " Giriş başarıyla gerçekleştirildi, kullanıcı oturumu aktif.  ", 
         token,
-        EMailAddress: Auth.EMailAddress
+        Auth: LogedAuth
       });
   })
 );
@@ -852,7 +855,7 @@ app.put(
 
     await User.findOneAndUpdate(filter, update);
 
-    return res.status(200).json({ message:' Kullanıcı bilgileri başarıyla güncellendi. ', Auth: UserData});
+    return res.status(200).json({ message:' Kullanıcı bilgileri başarıyla güncellendi. '});
   })
 );
 
