@@ -476,7 +476,7 @@ app.post(
     var Auth = await GetAuthDetails(req, res);
 
     if ( !Auth.TwoFAStatus) return res.status(403).json({ message: "2 faktörlü doğrulama tamamlanmamış, lütfen tekrar deneyiniz. " });
-    if ( Auth.Password !== Sha256Crypto(Password, Auth.id)) return res.status(401).json({ message: " Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
+    if ( Auth.Password !== Sha256Crypto(Password, Auth._id.toString())) return res.status(401).json({ message: " Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
 
     var update = {
       $set: {
@@ -804,7 +804,7 @@ app.put(
     if ( Auth.IsTemporary) return res.status(403).json({ message: "Kullanıcı kayıt doğrulaması tamamlanmamış, lütfen kayıt işlemlerinizi tamamlayınız. " });
     if ( !Auth.TwoFAStatus) return res.status(403).json({ message: "2 faktörlü doğrulama tamamlanmamış, lütfen tekrar deneyiniz. " });
     
-    if( UserData.ProfileImage) UserData.ProfileImage = aes256Crypto(UserData.ProfileImage, Auth.id);
+    if( UserData.ProfileImage) UserData.ProfileImage = aes256Crypto(UserData.ProfileImage, Auth._id.toString());
 
     var update = {
       $set:{
