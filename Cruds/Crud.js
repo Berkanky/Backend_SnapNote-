@@ -119,7 +119,7 @@ app.put(
 
       Auth = await newAuth.save();
     }
-    console.log("Kayıt Olan Kullanıcı ID'si : ", Auth.id, Auth._id.toString());
+    console.log("Kayıt Olan Kullanıcı ID'si : ", Auth.id, Auth._id.toString()) //silinecek.
     if (!Auth.IsTemporary) return res.status(409).json({ message: " Bu email ile kayıtlı bir hesap zaten mevcut. " });
 
     var VerificationId = await RegisterEmailVerification(EMailAddress);
