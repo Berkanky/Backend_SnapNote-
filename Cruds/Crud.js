@@ -98,9 +98,8 @@ const GetAuthDetails = async(req, res) => {
   var { EMailAddress} = req.params;
   var filter = { EMailAddress};
   var Auth = await User.findOne(filter).lean();
-  console.log("Bulunan Auth : ", JSON.stringify(Auth));
   return Auth
-};
+}; 
 
 //Kayıt Ol Doğrulama Kodu Gönder.
 app.put(
@@ -108,8 +107,8 @@ app.put(
   rateLimiter,
   EMailAddressControl,
   asyncHandler(async (req, res) => {
+
     var { EMailAddress } = req.params;
-    
     var Auth = await GetAuthDetails(req, res);
     
     if (!Auth) {
@@ -120,7 +119,7 @@ app.put(
 
       Auth = await newAuth.save();
     }
-    console.log("Kayıt Olan Kullanıcı ID'si : ",Auth._id.toString());
+
     if (!Auth.IsTemporary) return res.status(409).json({ message: " Bu email ile kayıtlı bir hesap zaten mevcut. " });
 
     var VerificationId = await RegisterEmailVerification(EMailAddress);
@@ -144,9 +143,9 @@ app.put(
 
       await AuthToken.findByIdAndUpdate(createdToken._id, update);
 
-    } else {
-      await newAuthTokenFunction(req, res, {Id: Auth._id.toString(), Type: "Register_Email_Verification", Token: VerificationId});
-    }
+    } 
+
+    if(!createdToken) await newAuthTokenFunction(req, res, {Id: Auth._id.toString(), Type: "Register_Email_Verification", Token: VerificationId});
 
     return res.status(200).json({ message: " Kayıt olmak için doğrulama kodu emailinize gönderildi, lütfen emailinizi kontrol ediniz. "});
   })
@@ -158,26 +157,23 @@ app.put(
   rateLimiter,
   EMailAddressControl,
   asyncHandler(async (req, res) => {
-    var { EMailAddress } = req.params;
-    var VerificationId = req.body.VerificationId;
-
+    var { VerificationId} = req.body;
     if (!VerificationId) return res.status(400).json({ message: "Lütfen doğrulama kodunuzu giriniz. " });
 
-    var filter = { EMailAddress };
-    var Auth = await User.findOne(filter);
-
+    var Auth = await GetAuthDetails(req, res);
     if (!Auth.IsTemporary) return res.status(409).json({ message: "Bu email ile kayıtlı bir hesap zaten mevcut. " });
 
     var AuthTokenFilter = {
-      UserId: Auth.id,
+      UserId: Auth._id.toString(),
       TokenType: "Register_Email_Verification",
       TokenUsed: false
     };
+
     var createdToken = await AuthToken.findOne(AuthTokenFilter);
 
-    if(!createdToken) return res.status(404).json({message:' Doğrulama kodu eksik veya geçersiz, lütfen tekrar deneyiniz. '});
-    if(createdToken.Token != VerificationId) return res.status(400).json({message:' Doğrulama kodu eşleşmedi, lütfen tekrar deneyiniz. '});
-    if(new Date() > new Date(String(createdToken.TokenExpiredDate))) return res.status(410).json({ message: "Doğrulama kodu süresi dolmuş, lütfen tekrar deneyiniz. " });
+    if( !createdToken) return res.status(404).json({message:' Doğrulama kodu eksik veya geçersiz, lütfen tekrar deneyiniz. '});
+    if( createdToken.Token != VerificationId) return res.status(400).json({message:' Doğrulama kodu eşleşmedi, lütfen tekrar deneyiniz. '});
+    if( new Date() > new Date(String(createdToken.TokenExpiredDate))) return res.status(410).json({ message: "Doğrulama kodu süresi dolmuş, lütfen tekrar deneyiniz. " });
     
     var authTokenUpdate = {
       $set:{
@@ -205,32 +201,28 @@ app.post(
   AuthControl,
   asyncHandler(async (req, res) => {
     var { EMailAddress } = req.params;
-    var Password = req.body.Password;
-    var PasswordConfirm = req.body.PasswordConfirm;
+    var { Password, PasswordConfirm} = req.body;
 
-    if (!Password || !PasswordConfirm || Password !== PasswordConfirm) return res.status(400).json({ message: "Şifrenizin doğrulaması başarısız, lütfen şifrenizi tekrardan giriniz. " });
+    if ( !Password || !PasswordConfirm || !Password === PasswordConfirm) return res.status(400).json({ message: "Şifrenizin doğrulaması başarısız, lütfen şifrenizi tekrardan giriniz. " });
 
-    var filter = { EMailAddress };
-    var Auth = await User.findOne(filter);
+    var Auth = await GetAuthDetails(req, res);
 
     if ( !Auth.IsTemporary) return res.status(409).json({ message: "Bu email ile kayıtlı bir hesap zaten mevcut. " });
 
-    Password = Sha256Crypto(Password, Auth.id);
+    Password = Sha256Crypto(Password, Auth._id.toString());
 
     var update = {
       $set: {
         Password: Password,
         CreatedDate: new Date(),
-        IsTemporary: false,
-      },
+        IsTemporary: false
+      }
     };
   
-    await newLogFunction(req, res, {Id: Auth.id, Type:"Register"});
-    await User.findOneAndUpdate(filter, update);
+    await newLogFunction(req, res, {Id: Auth._id.toString(), Type:"Register"});
+    await User.findByIdAndUpdate(Auth._id.toString(), update);
 
-    return res
-      .status(201)
-      .json({ message: "Hesabınzı başarıyla oluşturdunuz, giriş yapabilirsiniz. " });
+    return res.status(201).json({ message: "Hesabınzı başarıyla oluşturdunuz, giriş yapabilirsiniz. " });
   })
 );
 
@@ -242,19 +234,17 @@ app.get(
   AuthenticateJWTToken,
   asyncHandler(async (req, res) => {
     var {EMailAddress} = req.params;
-    var filter = {EMailAddress};
-
     var cacheKey = `Auth:${EMailAddress}`;
 
     var AuthInCache = ServerCache.get(cacheKey);
     if( AuthInCache) return res.status(200).json({ message: " Kullanıcı bilgileri başarıyla getirildi. ( N-C )", Auth: AuthInCache });
 
-    var Auth = await User.findOne(filter).lean();
+    var Auth = await GetAuthDetails(req, res);
 
     if ( Auth.IsTemporary) return res.status(403).json({ message: "Kullanıcı kayıt doğrulaması tamamlanmamış, lütfen kayıt işlemlerinizi tamamlayınız. " });
     if ( !Auth.TwoFAStatus) return res.status(403).json({ message: "2 faktörlü doğrulama tamamlanmamış, lütfen tekrar deneyiniz. " });
 
-    Auth.ProfileImage = aes256Decrypt(Auth.ProfileImage, Auth._id.toString());
+    if( Auth.ProfileImage) Auth.ProfileImage = aes256Decrypt(Auth.ProfileImage, Auth._id.toString());
 
     ServerCache.set(cacheKey, Auth);
 
@@ -271,13 +261,11 @@ app.get(
   asyncHandler(async (req, res) => {
     var { EMailAddress } = req.params;
 
-    var filter = { EMailAddress };
-    var Auth = await User.findOne(filter);
-
-    if (Auth.IsTemporary) return res.status(403).json({message: "Kullanıcı kayıt doğrulaması tamamlanmamış, lütfen kayıt işlemlerinizi tamamlayınız. " });
+    var Auth = await GetAuthDetails(req, res);
+    if ( Auth.IsTemporary) return res.status(403).json({message: "Kullanıcı kayıt doğrulaması tamamlanmamış, lütfen kayıt işlemlerinizi tamamlayınız. " });
     
     var AuthTokenFilter = {
-      UserId: Auth.id,
+      UserId: Auth._id.toString(),
       TokenType: "Set_Password"
     };
 
@@ -286,10 +274,9 @@ app.get(
     var VerificationId = await SetPasswordEmailVerification(EMailAddress);
     var ExpireDate = CalculateExpireDate({ hours: 0, minutes: 15 });
 
-    if(!createdToken){
+    if( !createdToken) await newAuthTokenFunction(req, res, {Id: Auth._id.toString(), Type: "Set_Password", Token: VerificationId});
 
-      await newAuthTokenFunction(req, res, {Id: Auth.id, Type: "Set_Password", Token: VerificationId});
-    }else{
+    if( createdToken){
       var update = {
         $set:{
           TokenCreatedDate: new Date(),
@@ -313,22 +300,19 @@ app.put(
   EMailAddressControl,
   AuthControl,
   asyncHandler(async(req, res) => {
-    var { EMailAddress} = req.params;
-    var VerificationId = req.body.VerificationId;
+    var { VerificationId} = req.body;
+    if( !VerificationId) return res.status(400).json({message:' Doğrulama kodu eksik veya hatalı, lütfen tekrar deneyiniz. '});
 
-    if(!VerificationId) return res.status(400).json({message:' Doğrulama kodu eksik veya hatalı, lütfen tekrar deneyiniz. '});
-
-    var filter = { EMailAddress};
-    var Auth = await User.findOne(filter);
+    var Auth = await GetAuthDetails(req, res);
 
     var AuthTokenFilter = {
-      UserId: Auth.id,
+      UserId: Auth._id.toString(),
       TokenType: "Set_Password"
     };
 
     var authToken = await AuthToken.findOne(AuthTokenFilter);
-
-    if(authToken.Token !== VerificationId) return res.status(400).json({message:' Doğrulama kodu eşleşmedi, lütfen tekrar deneyiniz. '});
+    if( !authToken) return res.status(404).json({ message:' Doğrulama kodu eşleşmedi, lütfen tekrar deneyiniz. '});
+    if( authToken.Token !== VerificationId) return res.status(400).json({message:' Doğrulama kodu eşleşmedi, lütfen tekrar deneyiniz. '});
     if( new Date() > new Date(String(authToken.TokenExpiredDate))) return res.status(400).json({message:' Şifre sıfırlama doğrulama kodunun süresi geçmiş, lütfen tekrar deneyiniz. '});
 
 
@@ -356,16 +340,13 @@ app.put(
   EMailAddressControl,
   AuthControl,
   asyncHandler(async (req, res) => {
-    var { EMailAddress } = req.params;
-    var { Password, PasswordConfirm} = req.body;
+    var { Password, PasswordConfirm } = req.body;
 
-    var filter = { EMailAddress };
+    if (!Password || !PasswordConfirm || !Password === PasswordConfirm) return res.status(400).json({ message: "Şifrenizin doğrulaması başarısız, lütfen şifrenizi tekrardan giriniz. " });
 
-    if (!Password || !PasswordConfirm || Password !== PasswordConfirm) return res.status(400).json({ message: "Şifrenizin doğrulaması başarısız, lütfen şifrenizi tekrardan giriniz. " });
+    var Auth = await GetAuthDetails(req, res);
 
-    var Auth = await User.findOne(filter);
-
-    Password = Sha256Crypto(Password, Auth.id);
+    Password = Sha256Crypto(Password, Auth._id.toString());
 
     var update = {
       $set: {
@@ -374,8 +355,8 @@ app.put(
       }
     };
 
-    await User.findOneAndUpdate(filter, update);
-    await newLogFunction(req, res, {Id: Auth.id, Type:"Set_Password"});
+    await User.findByIdAndUpdate(Auth._id.toString(), update);
+    await newLogFunction(req, res, {Id: Auth._id.toString(), Type:"Set_Password"});
 
     return res.status(200).json({ message: "Şifreniz başarıyla değiştirildi, yeni şifrenizi kullanarak giriş yapabilirsiniz. " });
   })
@@ -388,30 +369,26 @@ app.put(
   EMailAddressControl,
   AuthControl,
   asyncHandler(async (req, res) => {
-    var { EMailAddress } = req.params;
-    var Password = req.body.Password;
+    var { Password } = req.body;
 
-    if (!Password) return res.status(400).json({ message: " Şifre eksik veya hatalı, lütfen tekrar deneyiniz. " });
+    if ( !Password) return res.status(400).json({ message: " Şifre eksik veya hatalı, lütfen tekrar deneyiniz. " });
 
-    var filter = { EMailAddress };
-    var Auth = await User.findOne(filter);
+    var Auth = await GetAuthDetails(req, res);
 
-    if (Auth.IsTemporary) return res.status(403).json({ message: "Kullanıcı kayıt doğrulaması tamamlanmamış, lütfen kayıt işlemlerinizi tamamlayınız." });
-    if (Auth.Password !== Sha256Crypto(Password, Auth.id)) return res.status(401).json({ message: "Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
+    if ( Auth.IsTemporary) return res.status(403).json({ message: "Kullanıcı kayıt doğrulaması tamamlanmamış, lütfen kayıt işlemlerinizi tamamlayınız." });
+    if ( !Auth.Password === Sha256Crypto(Password, Auth._id.toString())) return res.status(401).json({ message: "Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
 
     var VerificationId = await LoginEmailVerification(Auth.EMailAddress);
     var ExpireDate = CalculateExpireDate({ hours: 0, minutes: 15 });
     
     var AuthTokenFilter = {
-      UserId: Auth.id,
+      UserId: Auth._id.toString(),
       TokenType: "Login"
     };
 
     var createdToken = await AuthToken.findOne(AuthTokenFilter);
-    if(!createdToken){
-
-      await newAuthTokenFunction(req, res, {Id: Auth.id, Type: "Login", Token: VerificationId});
-    }else{
+    if( !createdToken) await newAuthTokenFunction(req, res, {Id: Auth._id.toString(), Type: "Login", Token: VerificationId});
+    if( createdToken){
       var update = {
         TokenCreatedDate: new Date(),
         TokenExpiredDate: ExpireDate,
@@ -428,7 +405,8 @@ app.put(
         TwoFAStatus: false,
       }
     };
-    await User.findOneAndUpdate(filter, update);
+
+    await User.findByIdAndUpdate(Auth._id.toString(), update);
 
     return res
       .status(200)
@@ -443,30 +421,30 @@ app.put(
   EMailAddressControl,
   AuthControl,
   asyncHandler(async (req, res) => {
-    var { EMailAddress } = req.params;
-    var VerificationId = req.body.VerificationId;
+    var { VerificationId } = req.body;
 
-    if (!VerificationId) return res.status(400).json({ message: " Doğrulama kodu eksik veya hatalı, lütfen tekrar deneyiniz. " });
+    if ( !VerificationId) return res.status(400).json({ message: " Doğrulama kodu eksik veya hatalı, lütfen tekrar deneyiniz. " });
 
-    var filter = { EMailAddress };
-    var Auth = await User.findOne(filter);
+    var Auth = await GetAuthDetails(req, res);
 
     var AuthTokenFilter = {
-      UserId: Auth.id,
+      UserId: Auth._id.toString(),
       TokenType: "Login"
     };
 
     var createdToken = await AuthToken.findOne(AuthTokenFilter);
 
-    if(!createdToken) return res.status(404).json({message:' Doğrulama kodu eksik veya hatalı, lütfen tekrar deneyiniz. '});
-    if(createdToken.Token != VerificationId) return res.status(400).json({message:' Doğrulama kodu eşleşmedi, lütfen tekrar deneyiniz. '});
-    if(new Date() > new Date(String(createdToken.TokenExpiredDate))) return res.status(410).json({ message: " Doğrulama kodunuz geçersiz, lütfen yeniden deneyiniz. " });
+    if( !createdToken) return res.status(404).json({message:' Doğrulama kodu eksik veya hatalı, lütfen tekrar deneyiniz. '});
+    if( createdToken.Token !== VerificationId) return res.status(400).json({message:' Doğrulama kodu eşleşmedi, lütfen tekrar deneyiniz. '});
+    if( new Date() > new Date(String(createdToken.TokenExpiredDate))) return res.status(410).json({ message: " Doğrulama kodunuz geçersiz, lütfen yeniden deneyiniz. " });
     
     var update = {
       $set: {
         TwoFAStatus: true,
       }
     };
+    
+    await User.findByIdAndUpdate(Auth._id.toString(), update);
 
     var authTokenUpdate = {
       $set:{
@@ -478,8 +456,7 @@ app.put(
     };
 
     await AuthToken.findByIdAndUpdate(createdToken._id, authTokenUpdate);    
-    await User.findOneAndUpdate(filter, update);
-
+    
     return res
       .status(200)
       .json({ message: " 2FA doğrulaması başarılı. Giriş yapabilirsiniz. " });
@@ -493,17 +470,13 @@ app.post(
   EMailAddressControl,
   AuthControl,
   asyncHandler(async (req, res) => {
-    var { EMailAddress } = req.params;
+    var { Password } = req.body;
+    if ( !Password) return res.status(400).json({ message: " Şifre eksik veya hatalı, lütfen tekrar deneyiniz. " });
 
-    var Password = req.body.Password;
+    var Auth = await GetAuthDetails(req, res);
 
-    if (!Password) return res.status(400).json({ message: " Şifre eksik veya hatalı, lütfen tekrar deneyiniz. " });
-
-    var filter = { EMailAddress };
-    var Auth = await User.findOne(filter);
-
-    if (!Auth.TwoFAStatus) return res.status(403).json({ message: "2 faktörlü doğrulama tamamlanmamış, lütfen tekrar deneyiniz. " });
-    if (Auth.Password !== Sha256Crypto(Password, Auth.id)) return res.status(401).json({ message: " Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
+    if ( !Auth.TwoFAStatus) return res.status(403).json({ message: "2 faktörlü doğrulama tamamlanmamış, lütfen tekrar deneyiniz. " });
+    if ( Auth.Password !== Sha256Crypto(Password, Auth.id)) return res.status(401).json({ message: " Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
 
     var update = {
       $set: {
@@ -514,22 +487,21 @@ app.post(
       }
     };
 
-    await User.findOneAndUpdate(filter, update);
-    await newLogFunction(req, res, {Id: Auth.id, Type:"Login"});
+    Auth = await User.findByIdAndUpdate(Auth._id.toString(), update, { new: true});
+    await newLogFunction(req, res, {Id: Auth._id.toString(), Type:"Login"});
 
-    var token = await CreateJWTToken(req, res, Auth.EMailAddress, Auth.id);
-    if(!token) return res.status(400).json({message:' Session token oluşturulamadı, lüfen tekrar deneyiniz.'});
+    var token = await CreateJWTToken(req, res, Auth.EMailAddress, Auth._id.toString());
+    if( !token) return res.status(400).json({message:' Session token oluşturulamadı, lüfen tekrar deneyiniz.'});
 
-    var LogedAuth = await User.findOne(filter).lean();
-    if(LogedAuth.ProfileImage) LogedAuth.ProfileImage = aes256Decrypt(LogedAuth.ProfileImage, LogedAuth._id.toString());
-    LogedAuth.UpdatedDate = FormatDateFunction(LogedAuth.UpdatedDate);
+    if( Auth.ProfileImage) Auth.ProfileImage = aes256Decrypt(Auth.ProfileImage, Auth._id.toString());
+    if( Auth.UpdatedDate) Auth.UpdatedDate = FormatDateFunction(Auth.UpdatedDate);
 
     return res
       .status(200)
       .json({ 
         message: " Giriş başarıyla gerçekleştirildi, kullanıcı oturumu aktif.  ", 
         token,
-        Auth: LogedAuth
+        Auth
       });
   })
 );
@@ -542,11 +514,9 @@ app.put(
   AuthControl,
   AuthenticateJWTToken,
   asyncHandler(async (req, res) => {
-    var { EMailAddress } = req.params;
     var token = req.get("Authorization") && req.get("Authorization").split(" ")[1];
 
-    var filter = { EMailAddress };
-    var Auth = await User.findOne(filter);
+    var Auth = await GetAuthDetails(req, res);
     
     var update = {
       $set: {
@@ -556,9 +526,9 @@ app.put(
       }
     };
 
-    await User.findOneAndUpdate(filter, update);
-    await newTokenFunction(req, res, {Id: Auth.id, Token: token});
-    await newLogFunction(req, res, {Id: Auth.id, Type:"Logout"});
+    await User.findByIdAndUpdate(Auth._id.toString(), update);
+    await newTokenFunction(req, res, {Id: Auth._id.toString(), Token: token});
+    await newLogFunction(req, res, {Id: Auth._id.toString(), Type:"Logout"});
     
     return res.status(200).json({ message: "Oturum başarıyla sonlandırıldı, tekrar bekleriz. " });
   })
@@ -573,9 +543,7 @@ app.put(
   AuthenticateJWTToken,
   asyncHandler(async(req, res) => {
     var token = req.get("Authorization") && req.get("Authorization").split(" ")[1];
-    var { EMailAddress} = req.params;
 
-    var filter = { EMailAddress};
     var update = {
       $set:{
         TwoFAStatus: false,
@@ -584,7 +552,7 @@ app.put(
       }
     };
 
-    var Auth = await User.findOneAndUpdate(filter, update);
+    var Auth = await User.findOneAndUpdate(req.params.EMailAddress, update);
     await newLogFunction(req, res, {Id: Auth.id, Type: 'Close_App'});
     await newTokenFunction(req, res, {Id: Auth.id, Token: token});
 
@@ -600,29 +568,26 @@ app.post(
   AuthControl,
   AuthenticateJWTToken,
   asyncHandler(async(req,res) => {
-    var {EMailAddress} = req.params;
-    var NoteDataNonEncrypted = {};
-    var NoteData = req.body.NoteData;
-    NoteDataNonEncrypted = JSON.parse(JSON.stringify(NoteData));
+    var { NoteData } = req.body;
+    var NoteDataNonEncrypted = JSON.parse(JSON.stringify(NoteData));
 
-    var filter = {EMailAddress};
-    var Auth = await User.findOne(filter);
+    var Auth = await GetAuthDetails(req, res);
 
     NoteData.SelectedFiles.forEach(function(item){
-      item.Url = aes256Crypto(item.Url, Auth.id);
-      item.Name = aes256Crypto(item.Name, Auth.id);
+      item.Url = aes256Crypto(item.Url, Auth._id.toString());
+      item.Name = aes256Crypto(item.Name, Auth._id.toString());
     });
 
     NoteData.Audio.forEach(function(item){
-      item.Content = aes256Crypto(item.Content, Auth.id);
-      item.Url = aes256Crypto(item.Url, Auth.id);
+      item.Content = aes256Crypto(item.Content, Auth._id.toString());
+      item.Url = aes256Crypto(item.Url, Auth._id.toString());
     });
 
     var newNoteObj = {
-      UserId: Auth.id,
+      UserId: Auth._id.toString(),
       NoteName: NoteData.NoteName,
-      TextContent: aes256Crypto(NoteData.TextContent, Auth.id),
-      TextContentHTML: aes256Crypto(NoteData.TextContentHTML, Auth.id),
+      TextContent: aes256Crypto(NoteData.TextContent, Auth._id.toString()),
+      TextContentHTML: aes256Crypto(NoteData.TextContentHTML, Auth._id.toString()),
       Audio:NoteData.Audio.length ?  NoteData.Audio : [],
       SelectedFiles: NoteData.SelectedFiles.length ? NoteData.SelectedFiles : []
     };
@@ -634,7 +599,7 @@ app.post(
     NoteDataNonEncrypted.CreatedDate = new Date();
     NoteDataNonEncrypted.CreatedDateFormatted = FormatDateFunction(new Date())
 
-    var CacheKey = `Notes:${EMailAddress}`;
+    var CacheKey = `Notes:${Auth.EMailAddress}`;
     var NotesInCache = ServerCache.get(CacheKey)
     if(NotesInCache) NotesInCache.push(NoteDataNonEncrypted), ServerCache.set(CacheKey, NotesInCache);
 
@@ -650,32 +615,29 @@ app.get(
   AuthControl,
   AuthenticateJWTToken,
   asyncHandler(async(req, res) => {
-    var { EMailAddress} = req.params;
-    var filter = {EMailAddress };
+    var Auth = await GetAuthDetails(req, res);
 
-    var cacheKey = `Notes:${EMailAddress}`;
+    var cacheKey = `Notes:${Auth.EMailAddress}`;
     var NotesInCache = ServerCache.get(cacheKey);
     if(NotesInCache) return res.status(200).json({ message:' Notlar başarıyla getirildi. ( N-C )', Notes: NotesInCache });
 
-    var Auth = await User.findOne(filter);
-
-    var NoteFilter = {UserId: Auth.id};
+    var NoteFilter = {UserId: Auth._id.toString()};
     var Notes = await Note.find(NoteFilter).lean();
     
     Notes.forEach(function(note){
       
-      note.TextContent = aes256Decrypt(note.TextContent, Auth.id);
-      note.TextContentHTML = aes256Decrypt(note.TextContentHTML, Auth.id);
+      note.TextContent = aes256Decrypt(note.TextContent, Auth._id.toString());
+      note.TextContentHTML = aes256Decrypt(note.TextContentHTML, Auth._id.toString());
       note.CreatedDateFormatted = FormatDateFunction(note.CreatedDate);
 
       note.Audio.forEach(function(item){
-        item.Content = aes256Decrypt(item.Content, Auth.id);
-        item.Url = aes256Decrypt(item.Url, Auth.id);
+        item.Content = aes256Decrypt(item.Content, Auth._id.toString());
+        item.Url = aes256Decrypt(item.Url, Auth._id.toString());
       });
 
       note.SelectedFiles.forEach(function(item){
-        item.Url = aes256Decrypt(item.Url, Auth.id);
-        item.Name = aes256Decrypt(item.Name, Auth.id);
+        item.Url = aes256Decrypt(item.Url, Auth._id.toString());
+        item.Name = aes256Decrypt(item.Name, Auth._id.toString());
         item.CreatedDateFormatted = FormatDateFunction(item.CreatedDate);
       });
     });
@@ -695,21 +657,20 @@ app.get(
   AuthenticateJWTToken,
   asyncHandler(async(req, res) => {
     var { EMailAddress, Id} = req.params;
-    console.log("Seçilen Notun ID'si : ", Id);
+
+    var Auth = await GetAuthDetails(req, res);
+
     var CacheKey = `Note:${Id}`;
     var NoteInCache = ServerCache.get(CacheKey);
-    if(NoteInCache) return res.status(200).json({message:' Not detayları başarıyla getirildi. ( N-C )', Note: NoteInCache });
-
-    var filter = {EMailAddress};
-    var Auth = await User.findOne(filter);
+    if( NoteInCache) return res.status(200).json({message:' Not detayları başarıyla getirildi. ( N-C )', Note: NoteInCache });
 
     var note = await Note.findById(Id).lean();
-    if(!note) return res.status(404).json({message:' Not bulunamadı, lütfen tekrar deneyiniz. '});
+    if( !note) return res.status(404).json({message:' Not bulunamadı, lütfen tekrar deneyiniz. '});
     
     note.CreatedDateFormatted = FormatDateFunction(note.CreatedDate);
     note.UpdatedDateFormatted = note.UpdatedDate ? FormatDateFunction(note.UpdatedDate) : null;
-    note.TextContent = aes256Decrypt(note.TextContent, Auth.id);
-    note.TextContentHTML = aes256Decrypt(note.TextContentHTML, Auth.id);
+    note.TextContent = aes256Decrypt(note.TextContent, Auth._id.toString());
+    note.TextContentHTML = aes256Decrypt(note.TextContentHTML, Auth._id.toString());
 
     note.SelectedFiles.forEach(function(item){
       item.CreatedDateFormatted = FormatDateFunction(item.CreatedDate);
@@ -717,13 +678,13 @@ app.get(
       item.SizeDetail = formatBytes(item.Size, 2);
       item.MimeTypeDetail = GetMimeTypeDetail(item.MimeType, item.Name);
 
-      item.Url = aes256Decrypt(item.Url, Auth.id);
-      item.Name = aes256Decrypt(item.Name, Auth.id);
+      item.Url = aes256Decrypt(item.Url, Auth._id.toString());
+      item.Name = aes256Decrypt(item.Name, Auth._id.toString());
     });
 
     note.Audio.forEach(function(item){ 
-      item.Content = aes256Decrypt(item.Content, Auth.id);
-      item.Url = aes256Decrypt(item.Url, Auth.id);
+      item.Content = aes256Decrypt(item.Content, Auth._id.toString());
+      item.Url = aes256Decrypt(item.Url, Auth._id.toString());
     });
 
     var update = {
@@ -736,7 +697,7 @@ app.get(
 
     ServerCache.set(CacheKey, note);  
 
-    return res.status(200).json({ message:" Not detayları başarıyla getirildi. ", Note: note, RequestDate: new Date()});
+    return res.status(200).json({ message:" Not detayları başarıyla getirildi. ", Note: note});
   })
 );
 
@@ -749,14 +710,13 @@ app.delete(
   AuthenticateJWTToken,
   asyncHandler(async(req, res) => {
     var { EMailAddress, Id} = req.params;
-    if(!Id) return res.status(400).json({message:' Lütfen silmek istediğiniz notu seçtiğinizden emin olun. '});
+    if( !Id) return res.status(400).json({message:' Lütfen silmek istediğiniz notu seçtiğinizden emin olun. '});
 
-    var filter = {EMailAddress};
-    var Auth = await User.findOne(filter);
+    var Auth = await GetAuthDetails(req, res);
 
-    var NoteFilter = { UserId: Auth.id, _id: Id };
+    var NoteFilter = { UserId: Auth._id.toString(), _id: Id };
     var deletedNoted = await Note.findOneAndDelete(NoteFilter);
-    if(!deletedNoted) return res.status(400).json({message:' Silme işlemi başarısız, lütfen tekrar deneyiniz.'});
+    if( !deletedNoted) return res.status(400).json({message:' Silme işlemi başarısız, lütfen tekrar deneyiniz.'});
 
     var CacheKey = `Note:${Id}`;
     var NoteInCache = ServerCache.get(CacheKey);
@@ -769,7 +729,7 @@ app.delete(
       ServerCache.set(CacheKey, NotesInCache);
     }
 
-    return res.status(200).json({message:'Seçili not başarıyla silindi. ', Id: Id});
+    return res.status(200).json({message:'Seçili not başarıyla silindi. ', Id});
   })
 );
 
@@ -788,28 +748,27 @@ app.put(
     if(!Id) return res.status(400).json({message: 'Lütfen güncellemek istediğiniz notu doğru bir şekilde seçtiğinizden emin olun. '});
     if(!Object.keys(NoteData).length) return res.status(400).json({message: ' Lütfen güncellemek istediğiniz notu doğru bir şekilde seçtiğinizden emin olun. '});
     
-    var filter = { EMailAddress};
-    var Auth = await User.findOne(filter);
+    var Auth = await GetAuthDetails(req, res);
 
     NoteData.UpdatedDate = new Date();
-    NoteData.TextContent = aes256Crypto(NoteData.TextContent, Auth.id);
-    NoteData.TextContentHTML = aes256Crypto(NoteData.TextContentHTML, Auth.id);
+    NoteData.TextContent = aes256Crypto(NoteData.TextContent, Auth._id.toString());
+    NoteData.TextContentHTML = aes256Crypto(NoteData.TextContentHTML, Auth._id.toString());
 
     NoteData.SelectedFiles.forEach(function(item){
       if('State' in item && item.State === "Deleted") return NoteData.SelectedFiles = NoteData.SelectedFiles.filter(function(obj){ return obj._id !== item._id});
       
-      item.Url = aes256Crypto(item.Url, Auth.id);
-      item.Name = aes256Crypto(item.Name, Auth.id);
+      item.Url = aes256Crypto(item.Url, Auth._id.toString());
+      item.Name = aes256Crypto(item.Name, Auth._id.toString());
     });
 
     NoteData.Audio.forEach(function(item){
       if('State' in item && item.State === "Deleted") return NoteData.Audio = NoteData.Audio.filter(function(obj){ return obj._id !== item._id});
       
-      item.Content = aes256Crypto(item.Content, Auth.id);
-      item.Url = aes256Crypto(item.Url, Auth.id);
+      item.Content = aes256Crypto(item.Content, Auth._id.toString());
+      item.Url = aes256Crypto(item.Url, Auth._id.toString());
     });
 
-    var noteFilter = { UserId: Auth.id, _id: Id };
+    var noteFilter = { UserId: Auth._id.toString(), _id: Id };
     var updatedNote = await Note.findOneAndUpdate(noteFilter, NoteData, {new: true});
 
     if(!updatedNote) return res.status(400).json({message:' Güncelleme işlemi başarısız, lütfen tekrar deneyiniz.'});
@@ -837,29 +796,27 @@ app.put(
   AuthControl,
   AuthenticateJWTToken,
   asyncHandler(async(req, res) => {
-    var { EMailAddress} = req.params;
-    var { UserData} = req.body;
+    var { UserData } = req.body;
     if ( !Object.keys(UserData).length) return res.status(400).json({message:' Kullanıcı bilgileri güncellenemedi, eksik veya hatalı bilgi mevcut, lütfen tekrar deneyiniz. '});
 
-    var filter = { EMailAddress};
-    var Auth = await User.findOne(filter);
+    var Auth = await GetAuthDetails(req, res);
     if ( !Auth) return res.status(404).json({message:' Kullanıcı bulunamadı.'});
     if ( Auth.IsTemporary) return res.status(403).json({ message: "Kullanıcı kayıt doğrulaması tamamlanmamış, lütfen kayıt işlemlerinizi tamamlayınız. " });
     if ( !Auth.TwoFAStatus) return res.status(403).json({ message: "2 faktörlü doğrulama tamamlanmamış, lütfen tekrar deneyiniz. " });
     
-    UserData.ProfileImage = aes256Crypto(UserData.ProfileImage, Auth.id);
+    if( UserData.ProfileImage) UserData.ProfileImage = aes256Crypto(UserData.ProfileImage, Auth.id);
 
     var update = {
       $set:{
-        Name: UserData.Name,
-        Surname: UserData.Surname,
-        Bio: UserData.Bio,
+        Name: UserData.Name || '',
+        Surname: UserData.Surname || '',
+        Bio: UserData.Bio || '',
         UpdatedDate: new Date(),
-        ProfileImage: UserData.ProfileImage
+        ProfileImage: UserData.ProfileImage || ''
       }
     };
 
-    await User.findOneAndUpdate(filter, update);
+    await User.findByIdAndUpdate( Auth._id.toString(), update);
 
     return res.status(200).json({ message:' Kullanıcı bilgileri başarıyla güncellendi. '});
   })
