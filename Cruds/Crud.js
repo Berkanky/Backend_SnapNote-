@@ -98,6 +98,7 @@ const GetAuthDetails = async(req, res) => {
   var { EMailAddress} = req.params;
   var filter = { EMailAddress};
   var Auth = await User.findOne(filter).lean();
+  console.log("Bulunan Auth : ", JSON.stringify(Auth));
   return Auth
 };
 
@@ -119,14 +120,14 @@ app.put(
 
       Auth = await newAuth.save();
     }
-    console.log("Kayıt Olan Kullanıcı ID'si : ", Auth.id, Auth._id.toString()) //silinecek.
+    console.log("Kayıt Olan Kullanıcı ID'si : ",Auth._id.toString());
     if (!Auth.IsTemporary) return res.status(409).json({ message: " Bu email ile kayıtlı bir hesap zaten mevcut. " });
 
     var VerificationId = await RegisterEmailVerification(EMailAddress);
     var ExpireDate = CalculateExpireDate( { hours: 0, minutes: 15});
 
     var createdToken = await AuthToken.findOne({
-      UserId: Auth.id,
+      UserId: Auth._id.toString(),
       TokenType: "Register_Email_Verification"
     });
 
@@ -147,9 +148,7 @@ app.put(
       await newAuthTokenFunction(req, res, {Id: Auth.id, Type: "Register_Email_Verification", Token: VerificationId});
     }
 
-    return res.status(200).json({
-      message: " Kayıt olmak için doğrulama kodu emailinize gönderildi, lütfen emailinizi kontrol ediniz. "
-    });
+    return res.status(200).json({ message: " Kayıt olmak için doğrulama kodu emailinize gönderildi, lütfen emailinizi kontrol ediniz. "});
   })
 );
 
