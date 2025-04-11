@@ -145,7 +145,7 @@ app.put(
       await AuthToken.findByIdAndUpdate(createdToken._id, update);
 
     } else {
-      await newAuthTokenFunction(req, res, {Id: Auth.id, Type: "Register_Email_Verification", Token: VerificationId});
+      await newAuthTokenFunction(req, res, {Id: Auth._id.toString(), Type: "Register_Email_Verification", Token: VerificationId});
     }
 
     return res.status(200).json({ message: " Kayıt olmak için doğrulama kodu emailinize gönderildi, lütfen emailinizi kontrol ediniz. "});
