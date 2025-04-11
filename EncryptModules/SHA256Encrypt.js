@@ -1,6 +1,6 @@
 const crypto = require("crypto");
 
-function EncryptDataFunction(plainString, UserId) {
+function Sha256Crypto(plainString, UserId) {
   plainString = String(plainString);
   UserId = String(UserId);
   try {
@@ -13,4 +13,4 @@ function EncryptDataFunction(plainString, UserId) {
   }
 }
 
-module.exports = EncryptDataFunction
+module.exports = Sha256Crypto

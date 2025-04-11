@@ -18,7 +18,9 @@ const AuthenticateJWTToken = async (req, res, next) => {
 
       var update = {
         $set:{
-          Active: false
+          Active: false,
+          TwoFAStatus: false,
+          LastLoginDate: new Date()
         }
       };
       

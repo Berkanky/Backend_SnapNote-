@@ -25,7 +25,7 @@ const GetMimeTypeDetail = require("../MyFunctions/GetMimeTypeDetail");
 const CalculateExpireDate = require("../MyFunctions/CalculateExpireDate");
 
 //Encryp Fonksiyonlar.
-var EncryptDataFunction = require("../EncryptModules/SHA256Encrypt");
+var Sha256Crypto = require("../EncryptModules/SHA256Encrypt");
 var aes256Crypto = require("../EncryptModules/AES256Encrypt");
 var aes256Decrypt = require("../EncryptModules/AES256Decrypt");
 
@@ -42,6 +42,8 @@ const EMailAddressControl = require("../Middleware/EMailAddressControl");
 const rateLimiter = require("../Middleware/RateLimiter");
 const AuthControl = require("../Middleware/AuthControl");
 const InvalidTokenControlFunction = require("../Middleware/InvalidTokenControl");
+const AuthTemporaryControl = require("../Middleware/AuthTemporaryControl");
+const Auth2FAStatusControl = require("../Middleware/Auth2FAStatusControl");
 
 //JWT.
 const AuthenticateJWTToken = require("../JWTModules/JWTTokenControl");
@@ -92,6 +94,13 @@ const newTokenFunction = async(req, res, body) => {
   return newTokenObj;
 };
 
+const GetAuthDetails = async(req, res) => {
+  var { EMailAddress} = req.params;
+  var filter = { EMailAddress};
+  var Auth = await User.findOne(filter).lean();
+  return Auth
+};
+
 //Kayıt Ol Doğrulama Kodu Gönder.
 app.put(
   "/signup-verification/:EMailAddress",
@@ -99,21 +108,18 @@ app.put(
   EMailAddressControl,
   asyncHandler(async (req, res) => {
     var { EMailAddress } = req.params;
-
-    var filter = { EMailAddress };
-    var Auth = await User.findOne(filter);
-
+    
+    var Auth = await GetAuthDetails(req, res);
+    
     if (!Auth) {
       var newAuth = new User({
         EMailAddress: EMailAddress,
         IsTemporary: true,
       });
 
-      await newAuth.save();
+      Auth = await newAuth.save();
     }
-
-    Auth = await User.findOne(filter);
-
+    console.log("Kayıt Olan Kullanıcı ID'si : ", Auth.id, Auth._id.toString());
     if (!Auth.IsTemporary) return res.status(409).json({ message: " Bu email ile kayıtlı bir hesap zaten mevcut. " });
 
     var VerificationId = await RegisterEmailVerification(EMailAddress);
@@ -208,9 +214,9 @@ app.post(
     var filter = { EMailAddress };
     var Auth = await User.findOne(filter);
 
-    if (Auth.IsTemporary === false) return res.status(409).json({ message: "Bu email ile kayıtlı bir hesap zaten mevcut. " });
+    if ( !Auth.IsTemporary) return res.status(409).json({ message: "Bu email ile kayıtlı bir hesap zaten mevcut. " });
 
-    Password = EncryptDataFunction(Password, Auth.id);
+    Password = Sha256Crypto(Password, Auth.id);
 
     var update = {
       $set: {
@@ -360,7 +366,7 @@ app.put(
 
     var Auth = await User.findOne(filter);
 
-    Password = EncryptDataFunction(Password, Auth.id);
+    Password = Sha256Crypto(Password, Auth.id);
 
     var update = {
       $set: {
@@ -392,7 +398,7 @@ app.put(
     var Auth = await User.findOne(filter);
 
     if (Auth.IsTemporary) return res.status(403).json({ message: "Kullanıcı kayıt doğrulaması tamamlanmamış, lütfen kayıt işlemlerinizi tamamlayınız." });
-    if (Auth.Password !== EncryptDataFunction(Password, Auth.id)) return res.status(401).json({ message: "Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
+    if (Auth.Password !== Sha256Crypto(Password, Auth.id)) return res.status(401).json({ message: "Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
 
     var VerificationId = await LoginEmailVerification(Auth.EMailAddress);
     var ExpireDate = CalculateExpireDate({ hours: 0, minutes: 15 });
@@ -497,8 +503,8 @@ app.post(
     var filter = { EMailAddress };
     var Auth = await User.findOne(filter);
 
-    if (!Auth.TwoFAStatus) return res.status(403).json({ message: "2 faktörlü doğrulama tamamlanmamış, lütfen daha sonra tekrar deneyiniz. " });
-    if (Auth.Password !== EncryptDataFunction(Password, Auth.id)) return res.status(401).json({ message: " Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
+    if (!Auth.TwoFAStatus) return res.status(403).json({ message: "2 faktörlü doğrulama tamamlanmamış, lütfen tekrar deneyiniz. " });
+    if (Auth.Password !== Sha256Crypto(Password, Auth.id)) return res.status(401).json({ message: " Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
 
     var update = {
       $set: {
@@ -839,7 +845,7 @@ app.put(
     var filter = { EMailAddress};
     var Auth = await User.findOne(filter);
     if ( !Auth) return res.status(404).json({message:' Kullanıcı bulunamadı.'});
-    if ( Auth.IsTemporary === true) return res.status(403).json({ message: "Kullanıcı kayıt doğrulaması tamamlanmamış, lütfen kayıt işlemlerinizi tamamlayınız. " });
+    if ( Auth.IsTemporary) return res.status(403).json({ message: "Kullanıcı kayıt doğrulaması tamamlanmamış, lütfen kayıt işlemlerinizi tamamlayınız. " });
     if ( !Auth.TwoFAStatus) return res.status(403).json({ message: "2 faktörlü doğrulama tamamlanmamış, lütfen tekrar deneyiniz. " });
     
     UserData.ProfileImage = aes256Crypto(UserData.ProfileImage, Auth.id);

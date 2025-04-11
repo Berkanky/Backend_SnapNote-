@@ -3,6 +3,10 @@ require("dotenv").config();
 //Şemalar
 const User = require("./Schemas/User");
 
+//Şifreleme Modülleri
+const aes256Decrypt = require("./EncryptModules/AES256Decrypt");
+
+//Express
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
@@ -62,7 +66,9 @@ const userChangeStream = User.watch();
 userChangeStream.on("change", (change) => {
   var changedUserId = change.documentKey._id.toString();
   wss.clients.forEach((client) => {
-    if ( client.readyState === WebSocket.OPEN && client.userId === changedUserId) client.send(JSON.stringify({ type: "UserUpdate", payload: change.updateDescription.updatedFields }));
+    var ChangedAuthFields = change.updateDescription.updatedFields;
+    if(ChangedAuthFields.ProfileImage) ChangedAuthFields.ProfileImage = aes256Decrypt(ChangedAuthFields.ProfileImage, changedUserId);
+    if ( client.readyState === WebSocket.OPEN && client.userId === changedUserId) client.send(JSON.stringify({ type: "UserUpdate", payload: ChangedAuthFields }));
   });
 });
 
