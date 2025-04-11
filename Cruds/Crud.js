@@ -552,7 +552,7 @@ app.put(
       }
     };
 
-    var Auth = await User.findOneAndUpdate(req.params.EMailAddress, update);
+    var Auth = await User.findOneAndUpdate({EMailAddress: req.params.EMailAddress}, update);
     await newLogFunction(req, res, {Id: Auth.id, Type: 'Close_App'});
     await newTokenFunction(req, res, {Id: Auth.id, Token: token});
 
