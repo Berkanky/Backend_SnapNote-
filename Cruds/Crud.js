@@ -516,7 +516,8 @@ app.post(
     if(!token) return res.status(400).json({message:' Session token oluşturulamadı, lüfen tekrar deneyiniz.'});
 
     var LogedAuth = await User.findOne(filter).lean();
-    LogedAuth.ProfileImage = aes256Decrypt(LogedAuth.ProfileImage, LogedAuth._id.toString());
+    if(LogedAuth.ProfileImage) LogedAuth.ProfileImage = aes256Decrypt(LogedAuth.ProfileImage, LogedAuth._id.toString());
+    LogedAuth.UpdatedDate = FormatDateFunction(LogedAuth.UpdatedDate);
 
     return res
       .status(200)
