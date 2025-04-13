@@ -886,7 +886,7 @@ app.get(
   
   return res.status(200).json({
     message:' Log kayıtları başarıyla getirilmiştir.',
-    Logs:Logs
+    Logs:JSON.stringify(ActionArrays)
   });
 }));
 
