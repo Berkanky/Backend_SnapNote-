@@ -855,7 +855,7 @@ app.get(
   };
 
   var Logs = await Log.find({ UserId: Auth._id.toString()}).lean();
-  if( !Logs.length) return res.status(404).json({ message:' Log kaydı bulunamadı. ', Logs: []});
+  /* if( !Logs.length) return res.status(404).json({ message:' Log kaydı bulunamadı. ', Logs: []});
 
   Logs = Logs.sort(function( a, b) { return ( new Date(String(a.Date)).getTime() ) - ( new Date(String(b.Date)).getTime()) });
 
@@ -863,18 +863,17 @@ app.get(
     item.Date = FormatDateFunction(item.Date);
     for(var key in item){ if( encryptList.some(function(row){ return row === key}) ) item[key] = aes256Decrypt(item[key], Auth._id.toString()); };
 
-    /* var action_array = `${item.Action}_Array`;
+    var action_array = `${item.Action}_Array`;
     for(var key in ActionArrays){ 
       if(key === action_array) {
         var findedEnum = enumList.find(function(row) { return GetArrayKey(row) === item.Action});
         ActionArrays[key].push({...item, Description: findedEnum[item.Action] });
       }
-    } */
-  });
+    } 
+  }); */
   console.log("Logs : ", Logs);
   return res.status(200).json({
-    message:' Log kayıtları başarıyla getirilmiştir.', 
-    Logs: JSON.stringify(ActionArrays)
+    message:' Log kayıtları başarıyla getirilmiştir.'
   });
 }));
 
