@@ -873,21 +873,17 @@ app.get(
           item[key] = "⛔ çözülemedi";
         }
       }
+
+      var action_array = `${item.Action}_Array`;
+      for(var key in ActionArrays){ 
+        if(key === action_array) {
+          var findedEnum = enumList.find(function(row) { return GetArrayKey(row) === item.Action});
+          ActionArrays[key].push({...item, Description: findedEnum[item.Action] });
+        }
+      } 
     }
   });
-
-  /* 
-  var action_array = `${item.Action}_Array`;
-    for(var key in ActionArrays){ 
-      if(key === action_array) {
-        var findedEnum = enumList.find(function(row) { return GetArrayKey(row) === item.Action});
-        ActionArrays[key].push({...item, Description: findedEnum[item.Action] });
-      }
-    } 
   
-  */
-
-  console.log("Logs : ", Logs);
   return res.status(200).json({
     message:' Log kayıtları başarıyla getirilmiştir.',
     Logs:Logs
