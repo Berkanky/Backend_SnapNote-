@@ -860,7 +860,11 @@ app.get(
    
   Logs.forEach(function(item){
     item.Date = FormatDateFunction(item.Date);
-    for(var key in item) { if( encryptList.some(function(row){ return row === key}) ) item[key] = aes256Decrypt(item[key], Auth._id.toString()); };
+    for(var key in item) { 
+      if( encryptList.some(function(row){ return row === key}) ) {
+        item[key] = aes256Decrypt(item[key], Auth._id.toString());
+      }
+    }
   });
 
   /* 
