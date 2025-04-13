@@ -862,7 +862,7 @@ app.get(
     item.Date = FormatDateFunction(item.Date);
     for(var key in item) { 
       if( encryptList.some(function(row){ return row === key}) ) {
-        item[key] = aes256Decrypt(item[key], Auth._id.toString());
+        item[key] = "test test test" //aes256Decrypt(item[key], Auth._id.toString());
       }
     }
   });
