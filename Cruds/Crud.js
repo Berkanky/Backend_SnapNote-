@@ -867,7 +867,7 @@ app.get(
 
     var action_array = `${item.Action}_Array`;
     for(var key in ActionArrays){
-      if( key === action_array) ActionArrays[key].push({...item, Description: enumList.find(function(row) { return GetArrayKey(row) === item.Action})[GetArrayKey(row)]});
+      if( key === action_array) ActionArrays[key].push({...item, Description: enumList.find(function(row) { return GetArrayKey(row) === item.Action})[item.Action]});
     }
   });
 
