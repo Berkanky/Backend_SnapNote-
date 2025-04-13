@@ -855,10 +855,9 @@ app.get(
   };
 
   var Logs = await Log.find({ UserId: Auth._id.toString()}).lean();
-  /* if( !Logs.length) return res.status(404).json({ message:' Log kaydı bulunamadı. ', Logs: []});
-
+  if( !Logs.length) return res.status(404).json({ message:' Log kaydı bulunamadı. ', Logs: []});
   Logs = Logs.sort(function( a, b) { return ( new Date(String(a.Date)).getTime() ) - ( new Date(String(b.Date)).getTime()) });
-
+  /* 
   Logs.forEach(function(item){
     item.Date = FormatDateFunction(item.Date);
     for(var key in item){ if( encryptList.some(function(row){ return row === key}) ) item[key] = aes256Decrypt(item[key], Auth._id.toString()); };
@@ -873,7 +872,8 @@ app.get(
   }); */
   console.log("Logs : ", Logs);
   return res.status(200).json({
-    message:' Log kayıtları başarıyla getirilmiştir.'
+    message:' Log kayıtları başarıyla getirilmiştir.',
+    Logs:Logs
   });
 }));
 
