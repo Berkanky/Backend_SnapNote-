@@ -1,6 +1,14 @@
 const mongoose = require('mongoose');
 
-var enumList = [ 'Close_App', 'Register', 'Login', 'Set_Password', 'Register_Email_Verification', 'Login_Email_Verification'];
+var enumList = [ 
+    'Close_App', 
+    'Register', 
+    'Login', 
+    'Set_Password', 
+    'Register_Email_Verification', 
+    'Login_Email_Verification',
+    'Logout'
+];
 
 const LogSchema = new mongoose.Schema({
     UserId:{

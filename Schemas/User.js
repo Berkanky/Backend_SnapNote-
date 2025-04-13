@@ -18,7 +18,7 @@ const UserSchema = new mongoose.Schema({
     Bio:{
         type:String
     },
-    UserName:{
+    UserName:{ //Kullanıcı Adı
         type:String
     },
     Password:{

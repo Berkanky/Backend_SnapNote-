@@ -42,8 +42,6 @@ const EMailAddressControl = require("../Middleware/EMailAddressControl");
 const rateLimiter = require("../Middleware/RateLimiter");
 const AuthControl = require("../Middleware/AuthControl");
 const InvalidTokenControlFunction = require("../Middleware/InvalidTokenControl");
-const AuthTemporaryControl = require("../Middleware/AuthTemporaryControl");
-const Auth2FAStatusControl = require("../Middleware/Auth2FAStatusControl");
 
 //JWT.
 const AuthenticateJWTToken = require("../JWTModules/JWTTokenControl");
@@ -821,5 +819,62 @@ app.put(
     return res.status(200).json({ message:' Kullanıcı bilgileri başarıyla güncellendi. '});
   })
 );
+
+//Log kayıtlarını getir.
+function GetArrayKey(param){
+  for(var key in param){ return key }
+};
+
+app.get(
+  "/log-details/:EMailAddress",
+  EMailAddressControl,
+  AuthControl,
+  asyncHandler(async(req, res) => {
+  var Auth = await GetAuthDetails(req, res);
+
+  var enumList = [ 
+    {'Close_App': 'Uygulama başarıyla kapatıldı.'}, 
+    {'Register': 'Uygulama kaydı başarıyla tamamlandı. '}, 
+    {'Login': 'Uygulama oturumu başarıyla başlatıldı. '}, 
+    {'Set_Password': 'Uygulama şifresi başarıyla değiştirildi. '}, 
+    {'Register_Email_Verification': 'Uygulama kaydı mail doğrulama kodu başarıyla gönderildi. '}, 
+    {'Login_Email_Verification': 'Uygulama oturumu başlatılması için mail doğrulama kodu başarıyla gönderildi. '},
+    {'Logout': 'Uygulama oturumu başarıyla sonlandırıldı. '}
+  ];
+
+  var encryptList = [ 'IPAddress', 'DeviceName', 'DeviceId'];
+
+  var ActionArrays = {
+    Close_App_Array: [],
+    Register_Array: [],
+    Login_Array: [],
+    Set_Password_Array: [],
+    Register_Email_Verification_Array: [],
+    Login_Email_Verification_Array: [],
+    Logout_Array: []
+  };
+
+  var Logs = await Log.find({ UserId: Auth._id.toString()}).lean();
+  if( !Logs.length) return res.status(404).json({ message:' Log kaydı bulunamadı. ', Logs: []});
+
+  Logs = Logs.sort(function( a, b) { return ( new Date(String(a.Date)).getTime() ) - ( new Date(String(b.Date)).getTime()  )  });
+
+  Logs.forEach(function(item){
+    item.Date = FormatDateFunction(item.Date);
+    for(var key in item){ 
+      if( encryptList.some(function(row){ return row === key}) ) item[key] = aes256Decrypt(item[key], Auth._id.toString()); 
+    };
+
+    var action_array = `${item.Action}_Array`;
+    for(var key in ActionArrays){
+      if( key === action_array) ActionArrays[key].push({...item, Description: enumList.find(function(row) { return GetArrayKey(row) === item.Action})[GetArrayKey(row)]});
+    }
+  });
+
+  return res.status(200).json({
+    message:' Log kayıtları başarıyla getirilmiştir.', 
+    Logs: JSON.stringify(ActionArrays)
+  });
+}));
 
 module.exports = app;
