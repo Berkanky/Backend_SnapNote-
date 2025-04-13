@@ -860,9 +860,18 @@ app.get(
    
   Logs.forEach(function(item){
     item.Date = FormatDateFunction(item.Date);
-    for(var key in item) { 
-      if( encryptList.some(function(row){ return row === key}) ) {
-        if(item[key]) item[key] = aes256Decrypt(item[key], Auth._id.toString());
+    for (var key in item) {
+      if (
+        encryptList.includes(key) &&
+        typeof item[key] === "string" &&
+        item[key].trim().length > 0
+      ) {
+        try {
+          item[key] = aes256Decrypt(item[key], Auth._id.toString());
+        } catch (err) {
+          console.warn(`Decryption failed for ${key}:`, err.message);
+          item[key] = "⛔ çözülemedi";
+        }
       }
     }
   });
