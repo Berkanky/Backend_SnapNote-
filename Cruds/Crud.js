@@ -829,6 +829,7 @@ app.get(
   "/log-details/:EMailAddress",
   EMailAddressControl,
   AuthControl,
+  AuthenticateJWTToken,
   asyncHandler(async(req, res) => {
   var Auth = await GetAuthDetails(req, res);
 
@@ -869,7 +870,6 @@ app.get(
         try {
           item[key] = aes256Decrypt(item[key], Auth._id.toString());
         } catch (err) {
-          console.warn(`Decryption failed for ${key}:`, err.message);
           item[key] = "⛔ çözülemedi";
         }
       }
