@@ -866,7 +866,8 @@ app.get(
       if (
         encryptList.includes(key) &&
         typeof item[key] === "string" &&
-        item[key].trim().length > 0
+        item[key].trim().length > 0 &&
+        item[key]
       ) {
         try {
           item[key] = aes256Decrypt(item[key], Auth._id.toString());
