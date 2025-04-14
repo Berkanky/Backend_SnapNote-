@@ -886,7 +886,8 @@ app.get(
   
   return res.status(200).json({
     message:' Log kayıtları başarıyla getirilmiştir.',
-    Logs:JSON.stringify(ActionArrays)
+    Logs:JSON.stringify(ActionArrays),
+    All_Logs_Array: Logs
   });
 }));
 
