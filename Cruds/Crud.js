@@ -852,7 +852,8 @@ app.get(
     Set_Password_Array: [],
     Register_Email_Verification_Array: [],
     Login_Email_Verification_Array: [],
-    Logout_Array: []
+    Logout_Array: [],
+    All_Logs_Array: []
   };
 
   var Logs = await Log.find({ UserId: Auth._id.toString()}).lean();
@@ -883,11 +884,12 @@ app.get(
       } 
     }
   });
-  
+
+  ActionArrays.All_Logs_Array = Logs;
+
   return res.status(200).json({
     message:' Log kayıtları başarıyla getirilmiştir.',
-    Logs:JSON.stringify(ActionArrays),
-    All_Logs_Array: Logs
+    Logs:JSON.stringify(ActionArrays)
   });
 }));
 
