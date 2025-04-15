@@ -45,16 +45,18 @@ const WebSocket = require("ws");
 
 const wss = new WebSocket.Server({ server });
 
-const FindInUsers = async(DeviceId) => {
+async function FindInUsers(DeviceId) {
   var Users = await User.find().lean();
   if( !Users.length) return
   
   var findedUsers = [];
 
   Users.forEach(function(user){
-    if(user.DeviceId){
-      var UserDeviceId = aes256Decrypt(user.DeviceId, user._id.toString());
-      if( UserDeviceId === DeviceId && !findedUsers.some(function(item){ return item._id.toString() === user._id.toString()})) findedUsers.push(user);
+    if( user.TrustedDevices){
+      user.TrustedDevices.forEach(function(item){
+        var userDeviceId = aes256Decrypt( item.DeviceId, user._id.toString());
+        if(  DeviceId === userDeviceId && !findedUsers.some(function(item){ return item._id.toString() === user._id.toString()})) findedUsers.push({_id: user._id.toString(), EMailAddress: user.EMailAddress, LastLoginDate: user.LastLoginDate});
+      });
     }
   });
 
@@ -76,7 +78,7 @@ wss.on("connection", (ws) => {
         console.log("Sunucu tarafında yakalanan DeviceID : ", DeviceId);
         var FindedUsers = [];
         FindedUsers = await FindInUsers(DeviceId);
-        ClientSendedObject.quickAccess.FindedUsers = FindedUsers;
+        ClientSendedObject.quickAccess.FindedUsers = FindedUsers
         ws.send(JSON.stringify(ClientSendedObject));
       }
       

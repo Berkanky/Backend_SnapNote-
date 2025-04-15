@@ -474,7 +474,7 @@ app.post(
   EMailAddressControl,
   AuthControl,
   asyncHandler(async (req, res) => {
-    var { Password, DeviceId, IsRemindDeviceActive } = req.body;
+    var { Password, DeviceDetails, IsRemindDeviceActive } = req.body;
     if ( !Password) return res.status(400).json({ message: " Şifre eksik veya hatalı, lütfen tekrar deneyiniz. " });
 
     var Auth = await GetAuthDetails(req, res);
@@ -486,11 +486,17 @@ app.post(
       return res.status(401).json({ message: " Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
     }
 
+    var EncryptedDeviceDetails = Object.assign({}, DeviceDetails, {
+      DeviceName: aes256Crypto(DeviceDetails.DeviceName, Auth._id.toString()),
+      DeviceId: aes256Crypto(DeviceDetails.DeviceId, Auth._id.toString()),
+      IPAddress: getDeviceDetails(req, res, Auth._id.toString()).IPAddress
+    });
+
     var update = {
       $set: {
         Active: true,
         IsRemindDeviceActive: IsRemindDeviceActive,
-        DeviceId: aes256Crypto(DeviceId, Auth._id.toString())
+        TrustedDevices: [...Auth.TrustedDevices, EncryptedDeviceDetails]
       },
       $unset: {
         LastLoginDate: "",
