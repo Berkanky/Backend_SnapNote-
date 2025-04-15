@@ -492,11 +492,24 @@ app.post(
       IPAddress: getDeviceDetails(req, res, Auth._id.toString()).IPAddress
     });
 
+    var trustedDevices = Auth.TrustedDevices ? Auth.TrustedDevices : [];
+
+    trustedDevices.forEach(function(row){
+      var deviceId = aes256Decrypt(row.DeviceId, Auth._id.toString());
+      if( deviceId === DeviceDetails.DeviceId) {
+        if(IsRemindDeviceActive === true ) Object.assign(row, EncryptedDeviceDetails);
+        else trustedDevices = trustedDevices.filter(function(row){ return deviceId !== DeviceDetails.DeviceId});
+      }else{
+        
+        trustedDevices.push(EncryptedDeviceDetails);
+      }
+    });
+
     var update = {
       $set: {
         Active: true,
         IsRemindDeviceActive: IsRemindDeviceActive,
-        TrustedDevices: Auth.TrustedDevices ? [...Auth.TrustedDevices, EncryptedDeviceDetails] : [EncryptedDeviceDetails]
+        TrustedDevices: trustedDevices
       },
       $unset: {
         LastLoginDate: "",
