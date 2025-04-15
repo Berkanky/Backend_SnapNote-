@@ -65,7 +65,7 @@ async function FindInUsers(DeviceId) {
 
 wss.on("connection", (ws) => {
   ws.on("message", async (msg) => {
-    var ClientSendedObject = {payload:{}, quickAccess: {}};
+    var ClientSendedObject = {payload:{}, trustedDevices: {}};
     try {
       var data = JSON.parse(msg);
 
@@ -78,7 +78,7 @@ wss.on("connection", (ws) => {
         console.log("Sunucu tarafında yakalanan DeviceID : ", DeviceId);
         var FindedUsers = [];
         FindedUsers = await FindInUsers(DeviceId);
-        ClientSendedObject.quickAccess.FindedUsers = FindedUsers
+        ClientSendedObject.trustedDevices.Users = FindedUsers
         ws.send(JSON.stringify(ClientSendedObject));
       }
       
