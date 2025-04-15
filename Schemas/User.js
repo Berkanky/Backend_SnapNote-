@@ -18,10 +18,13 @@ const UserSchema = new mongoose.Schema({
     Bio:{
         type:String
     },
-    UserName:{ //Kullanıcı Adı
+    UserName:{
         type:String
     },
     Password:{
+        type:String
+    },
+    DeviceId:{
         type:String
     },
     CreatedDate:{
@@ -42,6 +45,9 @@ const UserSchema = new mongoose.Schema({
     Active:{
         type:Boolean
     },
+    IsRemindDeviceActive:{
+        type:Boolean
+    }
 });
 
 const User = mongoose.model('User', UserSchema);

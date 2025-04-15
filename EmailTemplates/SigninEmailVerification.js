@@ -4,14 +4,14 @@ const createVerifyCode = require("../MyFunctions/GenerateVerifyCode");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const sendGridFromEMailAddress = process.env.EMAIL_ADDRESS;
+var VerificationId = createVerifyCode();
 
 const LoginEmailVerification = async (EMailAddress) => {
-  var VerificationId = createVerifyCode();
 
   const msg = {
     to: EMailAddress,
     from: sendGridFromEMailAddress, 
-    subject: "LinkUp - Giriş Doğrulama Kodu",
+    subject: "SnapNote+ - Giriş Doğrulama Kodu",
     html: `
       <div style="
         font-family: Arial, sans-serif; 
@@ -32,7 +32,7 @@ const LoginEmailVerification = async (EMailAddress) => {
                 background-color: #4D2F7C; 
                 padding: 20px; 
                 text-align: center;">
-              <h1 style="color: #ffffff; margin: 0;">LinkUp - Giriş Onaylama</h1>
+              <h1 style="color: #ffffff; margin: 0;">SnapNote+ - Giriş Onaylama</h1>
             </td>
           </tr>
           
@@ -70,7 +70,7 @@ const LoginEmailVerification = async (EMailAddress) => {
               </p>
               <p style="margin-top: 20px; font-size: 16px; line-height: 1.5;">
                 Sevgiler,<br/>
-                <strong>LinkUp Ekibi</strong>
+                <strong>SnapNote+ Ekibi</strong>
               </p>
               <p style="margin-top: 20px; font-size: 12px; color: #aaaaaa;">
                 Bu e-posta ${new Date().toLocaleString("tr-TR")} tarihinde oluşturulmuştur.
@@ -87,7 +87,7 @@ const LoginEmailVerification = async (EMailAddress) => {
                 padding: 20px; 
                 text-align: center;">
               <p style="margin: 0; font-size: 14px; color: #aaaaaa;">
-                &copy; ${new Date().getFullYear()} LinkUp. Tüm Hakları Saklıdır.
+                &copy; ${new Date().getFullYear()} SnapNote+. Tüm Hakları Saklıdır.
               </p>
             </td>
           </tr>

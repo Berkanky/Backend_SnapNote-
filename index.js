@@ -45,13 +45,37 @@ const WebSocket = require("ws");
 
 const wss = new WebSocket.Server({ server });
 
+const FindInUsers = async(DeviceId) => {
+  var Users = await User.find().lean();
+  if( !Users.length) return
+  
+  var findedUsers = [];
+
+  Users.forEach(function(user){
+    var UserDeviceId = aes256Decrypt(user.DeviceId, user._id.toString());
+    if( UserDeviceId === DeviceId && !findedUsers.some(function(item){ return item._id.toString() === user._id.toString()})) findedUsers.push(user);
+  });
+
+  return findedUsers;
+};
+
 wss.on("connection", (ws) => {
-  ws.on("message", (msg) => {
+  ws.on("message", async (msg) => {
     try {
       var data = JSON.parse(msg);
+
       if (data.UserData) {
         ws.userId = data.UserData._id;
-      } else {
+      } 
+      
+      if(data.DeviceId){
+        var DeviceId = data.DeviceId;
+        var FindedUsers = [];
+        FindedUsers = await FindInUsers(DeviceId);
+        ws.send(JSON.stringify({quickAccess:{ FindedUsers}}));
+      }
+      
+      if(!Object.keys(data).length) {
         ws.send(JSON.stringify({payload:{}}));
       }
     } catch (error) {

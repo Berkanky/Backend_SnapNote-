@@ -1,13 +1,14 @@
 const mongoose = require('mongoose');
 
 var enumList = [ 
+    'Failed_Login',
     'Close_App', 
     'Register', 
     'Login', 
     'Set_Password', 
     'Register_Email_Verification', 
     'Login_Email_Verification',
-    'Logout'
+    'Logout',
 ];
 
 const LogSchema = new mongoose.Schema({

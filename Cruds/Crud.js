@@ -374,7 +374,11 @@ app.put(
     var Auth = await GetAuthDetails(req, res);
 
     if ( Auth.IsTemporary) return res.status(403).json({ message: "Kullanıcı kayıt doğrulaması tamamlanmamış, lütfen kayıt işlemlerinizi tamamlayınız." });
-    if ( !Auth.Password === Sha256Crypto(Password, Auth._id.toString())) return res.status(401).json({ message: "Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
+    if ( !Auth.Password === Sha256Crypto(Password, Auth._id.toString())) {
+
+      await newLogFunction(req, res, { Id: Auth._id.toString(), Type:'Failed_Login'});
+      return res.status(401).json({ message: "Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
+    }
 
     var VerificationId = await LoginEmailVerification(Auth.EMailAddress);
     var ExpireDate = CalculateExpireDate({ hours: 0, minutes: 15 });
@@ -405,6 +409,8 @@ app.put(
     };
 
     await User.findByIdAndUpdate(Auth._id.toString(), update);
+
+    await newLogFunction(req, res, {Id: Auth._id.toString(), Type:'Login_Email_Verification'})
 
     return res
       .status(200)
@@ -468,17 +474,23 @@ app.post(
   EMailAddressControl,
   AuthControl,
   asyncHandler(async (req, res) => {
-    var { Password } = req.body;
+    var { Password, DeviceId, IsRemindDeviceActive } = req.body;
     if ( !Password) return res.status(400).json({ message: " Şifre eksik veya hatalı, lütfen tekrar deneyiniz. " });
 
     var Auth = await GetAuthDetails(req, res);
 
     if ( !Auth.TwoFAStatus) return res.status(403).json({ message: "2 faktörlü doğrulama tamamlanmamış, lütfen tekrar deneyiniz. " });
-    if ( Auth.Password !== Sha256Crypto(Password, Auth._id.toString())) return res.status(401).json({ message: " Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
+    if ( Auth.Password !== Sha256Crypto(Password, Auth._id.toString())) {
+
+      await newLogFunction(req, res, { Id: Auth._id.toString(), Type:'Failed_Login'});
+      return res.status(401).json({ message: " Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
+    }
 
     var update = {
       $set: {
         Active: true,
+        IsRemindDeviceActive: IsRemindDeviceActive,
+        DeviceId: aes256Crypto(DeviceId, Auth._id.toString())
       },
       $unset: {
         LastLoginDate: "",

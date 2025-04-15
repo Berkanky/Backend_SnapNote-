@@ -1,17 +1,16 @@
 const sgMail = require("@sendgrid/mail");
 const createVerifyCode = require("../MyFunctions/GenerateVerifyCode");
 
-var VerificationId = createVerifyCode();
-
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const sendGridFromEMailAddress = process.env.EMAIL_ADDRESS;
+var VerificationId = createVerifyCode();
 
 const SetPasswordEmail = async (EMailAddress) => {
   const msg = {
     to: EMailAddress,
     from: sendGridFromEMailAddress, // Doğrulanmış e-posta adresiniz
-    subject: "LinkUp - Hesap şifresi değiştirme",
+    subject: "SnapNote+ - Hesap şifresi değiştirme",
     html: `
       <div style="
         font-family: Arial, sans-serif; 
@@ -32,7 +31,7 @@ const SetPasswordEmail = async (EMailAddress) => {
                 background-color: #4D2F7C; 
                 padding: 20px; 
                 text-align: center;">
-              <h1 style="color: #ffffff; margin: 0;">LinkUp - Giriş Onaylama</h1>
+              <h1 style="color: #ffffff; margin: 0;">SnapNote+ - Şifre Kurtarma</h1>
             </td>
           </tr>
           
@@ -45,7 +44,7 @@ const SetPasswordEmail = async (EMailAddress) => {
               </p>
               
               <p style="margin-top: 15px; font-size: 16px; line-height: 1.5;">
-                Hesabına giriş yapmaya çalıştın. Devam edebilmek için aşağıdaki 
+                Hesabını kurtarmak için  aşağıdaki 
                 doğrulama kodunu, uygulamadaki ilgili alana girmen gerekiyor.
               </p>
               
@@ -63,14 +62,14 @@ const SetPasswordEmail = async (EMailAddress) => {
                 ${VerificationId}
               </div> 
               <p style="margin-top: 15px; font-size: 16px; line-height: 1.5;">
-                Eğer bu giriş talebi sana ait değilse, lütfen bu e-postayı dikkate alma.
+                Eğer bu talep sana ait değilse, lütfen bu e-postayı dikkate alma.
               </p>
               <p style="margin-top: 15px; font-size: 16px; line-height: 1.5;">
                 Yardıma ihtiyacın olursa bizimle iletişime geçmekten çekinme.
               </p>
               <p style="margin-top: 20px; font-size: 16px; line-height: 1.5;">
                 Sevgiler,<br/>
-                <strong>LinkUp Ekibi</strong>
+                <strong>SnapNote+ Ekibi</strong>
               </p>
               <p style="margin-top: 20px; font-size: 12px; color: #aaaaaa;">
                 Bu e-posta ${new Date().toLocaleString("tr-TR")} tarihinde oluşturulmuştur.
@@ -87,7 +86,7 @@ const SetPasswordEmail = async (EMailAddress) => {
                 padding: 20px; 
                 text-align: center;">
               <p style="margin: 0; font-size: 14px; color: #aaaaaa;">
-                &copy; ${new Date().getFullYear()} LinkUp. Tüm Hakları Saklıdır.
+                &copy; ${new Date().getFullYear()} SnapNote+. Tüm Hakları Saklıdır.
               </p>
             </td>
           </tr>
