@@ -6,7 +6,8 @@ const TrustedDevicesSchema = new mongoose.Schema(
         Platform: { type: String },
         Type: { type: String },
         IPAddress: { type: String },
-        DeviceId : { type: String }
+        DeviceId : { type: String },
+        Date: { type: Date }
     }
 )
 

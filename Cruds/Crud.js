@@ -489,7 +489,8 @@ app.post(
     var EncryptedDeviceDetails = Object.assign({}, DeviceDetails, {
       DeviceName: aes256Crypto(DeviceDetails.DeviceName, Auth._id.toString()),
       DeviceId: aes256Crypto(DeviceDetails.DeviceId, Auth._id.toString()),
-      IPAddress: getDeviceDetails(req, res, Auth._id.toString()).IPAddress
+      IPAddress: getDeviceDetails(req, res, Auth._id.toString()).IPAddress,
+      Date: new Date()
     });
 
     var trustedDevices = Auth.TrustedDevices ? Auth.TrustedDevices : [];
