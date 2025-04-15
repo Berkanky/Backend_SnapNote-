@@ -496,7 +496,7 @@ app.post(
       $set: {
         Active: true,
         IsRemindDeviceActive: IsRemindDeviceActive,
-        TrustedDevices: [...Auth.TrustedDevices, EncryptedDeviceDetails]
+        TrustedDevices: Auth.TrustedDevices ? [...Auth.TrustedDevices, EncryptedDeviceDetails] : [EncryptedDeviceDetails]
       },
       $unset: {
         LastLoginDate: "",
