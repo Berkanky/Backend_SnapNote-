@@ -70,6 +70,7 @@ wss.on("connection", (ws) => {
       
       if(data.DeviceId){
         var DeviceId = data.DeviceId;
+        console.log("Sunucu tarafında yakalanan DeviceID : ", DeviceId);
         var FindedUsers = [];
         FindedUsers = await FindInUsers(DeviceId);
         ws.send(JSON.stringify({quickAccess:{ FindedUsers}}));
