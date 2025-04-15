@@ -63,6 +63,7 @@ const FindInUsers = async(DeviceId) => {
 
 wss.on("connection", (ws) => {
   ws.on("message", async (msg) => {
+    var ClientSendedObject = {payload:{}, quickAccess: {}};
     try {
       var data = JSON.parse(msg);
 
@@ -75,16 +76,17 @@ wss.on("connection", (ws) => {
         console.log("Sunucu tarafında yakalanan DeviceID : ", DeviceId);
         var FindedUsers = [];
         FindedUsers = await FindInUsers(DeviceId);
-        ws.send(JSON.stringify({quickAccess:{ FindedUsers}}));
+        ClientSendedObject.quickAccess.FindedUsers = FindedUsers;
+        ws.send(JSON.stringify(ClientSendedObject));
       }
       
       if(!Object.keys(data).length) {
-        ws.send(JSON.stringify({payload:{}}));
+        ws.send(JSON.stringify(ClientSendedObject));
       }
     } catch (error) {
       console.error("Mesaj parse hatası:", error);
     }
-    ws.send(JSON.stringify({payload:{}}));
+    ws.send(JSON.stringify(ClientSendedObject));
   });
 });
 
