@@ -66,8 +66,10 @@ async function FindInUsers(DeviceId) {
               LastLoginDate: FormatDateFunction(user.LastLoginDate), 
               Name: user.Name, 
               Surname: user.Surname, 
-              FullName: user.Name && user.Surname ? user.Name + ' ' + user.Surname : ''
-            });
+              FullName: user.Name && user.Surname ? user.Name + ' ' + user.Surname : '',
+              ProfileImage: aes256Decrypt(user.ProfileImage, user._id.toString())
+            }
+          );
         };
       });
     }
