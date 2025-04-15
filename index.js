@@ -52,8 +52,10 @@ const FindInUsers = async(DeviceId) => {
   var findedUsers = [];
 
   Users.forEach(function(user){
-    var UserDeviceId = aes256Decrypt(user.DeviceId, user._id.toString());
-    if( UserDeviceId === DeviceId && !findedUsers.some(function(item){ return item._id.toString() === user._id.toString()})) findedUsers.push(user);
+    if(user.DeviceId){
+      var UserDeviceId = aes256Decrypt(user.DeviceId, user._id.toString());
+      if( UserDeviceId === DeviceId && !findedUsers.some(function(item){ return item._id.toString() === user._id.toString()})) findedUsers.push(user);
+    }
   });
 
   return findedUsers;
