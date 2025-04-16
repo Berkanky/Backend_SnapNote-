@@ -495,16 +495,18 @@ app.post(
 
     var trustedDevices = Auth.TrustedDevices ? Auth.TrustedDevices : [];
 
-    trustedDevices.forEach(function(row){
-      var deviceId = aes256Decrypt(row.DeviceId, Auth._id.toString());
-      if( deviceId === DeviceDetails.DeviceId) {
-        if(IsRemindDeviceActive === true ) Object.assign(row, EncryptedDeviceDetails);
-        else trustedDevices = trustedDevices.filter(function(row){ return deviceId !== DeviceDetails.DeviceId});
-      }else{
-        
-        trustedDevices.push(EncryptedDeviceDetails);
-      }
-    });
+    if(trustedDevices.length){
+      trustedDevices.forEach(function(row){
+        if( aes256Decrypt(row.DeviceId, Auth._id.toString()) === DeviceDetails.DeviceId) {
+          if(IsRemindDeviceActive === true ) Object.assign(row, EncryptedDeviceDetails);
+          else trustedDevices = trustedDevices.filter(function(item){ return  aes256Decrypt(item.DeviceId, Auth._id.toString()) !== DeviceDetails.DeviceId});
+        }else{
+          trustedDevices.push(EncryptedDeviceDetails);
+        }
+      });
+    }else{
+      if(IsRemindDeviceActive === true) trustedDevices.push(EncryptedDeviceDetails);
+    }
 
     var update = {
       $set: {
