@@ -473,7 +473,7 @@ app.put(
   rateLimiter,
   asyncHandler( async( req, res) => {
     var { DeviceId, _id } = req.params;
-
+    if(!DeviceId || !_id) return res.status(404).json({message:' Hızlı giriş yapılamadı, lütfen daha sonra tekrar deneyini. '});
     var controlForTrustedDevices = false;
 
     var filter = { _id: _id.toString()};
@@ -486,7 +486,7 @@ app.put(
     if(!controlForTrustedDevices) return res.status(404).json({message:' Güvenilir cihaz tespit edilemedi. '});
 
     var token = await CreateJWTToken(req, res, Auth.EMailAddress, Auth._id.toString());
-    if(!token) return res.status(400).json({message:' Session tokeni hata, lütfen tekrar deneyiniz. '});
+    if( !token) return res.status(400).json({message:' Session tokeni oluşturulamadı, lütfen tekrar deneyiniz. '});
     
     var update = {
       $set:{
@@ -562,7 +562,7 @@ app.post(
     await newLogFunction(req, res, {Id: Auth._id.toString(), Type:"Login"});
 
     var token = await CreateJWTToken(req, res, Auth.EMailAddress, Auth._id.toString());
-    if( !token) return res.status(400).json({message:' Session token oluşturulamadı, lüfen tekrar deneyiniz.'});
+    if( !token) return res.status(400).json({message:' Session tokeni oluşturulamadı, lütfen tekrar deneyiniz. '});
 
     if( Auth.ProfileImage) Auth.ProfileImage = aes256Decrypt(Auth.ProfileImage, Auth._id.toString());
     if( Auth.UpdatedDate) Auth.UpdatedDate = FormatDateFunction(Auth.UpdatedDate);

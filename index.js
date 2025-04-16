@@ -58,16 +58,16 @@ async function FindInUsers(DeviceId) {
     if( user.TrustedDevices){
       user.TrustedDevices.forEach(function(item){
         var userDeviceId = aes256Decrypt( item.DeviceId, user._id.toString());
-        if(  DeviceId === userDeviceId && !findedUsers.some(function(item){ return item._id.toString() === user._id.toString()})) {
+        if( DeviceId === userDeviceId && !findedUsers.some(function(item){ return item._id.toString() === user._id.toString()})) {
           findedUsers.push(
             {
               _id: user._id.toString(), 
               EMailAddress: user.EMailAddress, 
-              LastLoginDate: FormatDateFunction(user.LastLoginDate), 
-              Name: user.Name, 
-              Surname: user.Surname, 
+              LastLoginDate: user.LastLoginDate ? FormatDateFunction(user.LastLoginDate) : '', 
+              Name: user.Name || '', 
+              Surname: user.Surname || '', 
               FullName: user.Name && user.Surname ? user.Name + ' ' + user.Surname : '',
-              ProfileImage: aes256Decrypt(user.ProfileImage, user._id.toString())
+              ProfileImage: user.ProfileImage ? aes256Decrypt(user.ProfileImage, user._id.toString()) : ''
             }
           );
         };
