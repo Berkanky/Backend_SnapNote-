@@ -503,7 +503,7 @@ app.put(
 
     await newLogFunction(req, res, {Id: Auth._id.toString(), Type: 'Quick_Login'});
 
-    return res.status(200).json({message:' Güvenilir cihaz tespit edildi, lütfen bekleyiniz yönlendiriliyorsunuz. ', Auth, token});
+    return res.status(200).json({message:' Güvenilir cihaz tespit edildi, lütfen bekleyiniz yönlendiriliyorsunuz. ', Auth: updatedUser, token});
   })
 );
 
