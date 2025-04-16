@@ -9,6 +9,7 @@ var enumList = [
     'Register_Email_Verification', 
     'Login_Email_Verification',
     'Logout',
+    'Quick_Login'
 ];
 
 const LogSchema = new mongoose.Schema({

@@ -467,6 +467,46 @@ app.put(
   })
 );
 
+//Hızlı giriş yap.
+app.put(
+  '/quick-access/:DeviceId/:_id',
+  rateLimiter,
+  asyncHandler( async( req, res) => {
+    var { DeviceId, _id } = req.params;
+
+    var controlForTrustedDevices = false;
+
+    var filter = { _id: _id.toString()};
+    var Auth = await User.findOne(filter);
+
+    if( !Auth) return res.status(404).json({message:' Kullanıcı bulunamadı. '});
+    if ( !'TrustedDevices' in Auth || !Auth.TrustedDevices.length) return res.status(404).json({message: 'Güvenilir cihaz tespit edilemedi. '});
+    
+    controlForTrustedDevices = Auth.TrustedDevices.some(function(row){ return aes256Decrypt(row.DeviceId, Auth._id.toString()) === DeviceId });
+    if(!controlForTrustedDevices) return res.status(404).json({message:' Güvenilir cihaz tespit edilemedi. '});
+
+    var token = await CreateJWTToken(req, res, Auth.EMailAddress, Auth._id.toString());
+    if(!token) return res.status(400).json({message:' Session tokeni hata, lütfen tekrar deneyiniz. '});
+    
+    var update = {
+      $set:{
+        Active: true,
+        TwoFAStatus: true
+      },
+      $unset:{
+        LastLoginDate: ''
+      }
+    }
+    var updatedUser = await User.findByIdAndUpdate(Auth._id.toString(), update, { new: true}).lean();
+    
+    if(updatedUser.ProfileImage) updatedUser.ProfileImage = aes256Decrypt(updatedUser.ProfileImage, Auth._id.toString());
+
+    await newLogFunction(req, res, {Id: Auth._id.toString(), Type: 'Quick_Login'});
+
+    return res.status(200).json({message:' Güvenilir cihaz tespit edildi, lütfen bekleyiniz yönlendiriliyorsunuz. ', Auth, token});
+  })
+);
+
 //Giriş yap.
 app.post(
   "/login/:EMailAddress",
@@ -475,12 +515,12 @@ app.post(
   AuthControl,
   asyncHandler(async (req, res) => {
     var { Password, DeviceDetails, IsRemindDeviceActive } = req.body;
-    if ( !Password) return res.status(400).json({ message: " Şifre eksik veya hatalı, lütfen tekrar deneyiniz. " });
+    if( !Password) return res.status(400).json({ message: " Şifre eksik veya hatalı, lütfen tekrar deneyiniz. " });
 
     var Auth = await GetAuthDetails(req, res);
 
-    if ( !Auth.TwoFAStatus) return res.status(403).json({ message: "2 faktörlü doğrulama tamamlanmamış, lütfen tekrar deneyiniz. " });
-    if ( Auth.Password !== Sha256Crypto(Password, Auth._id.toString())) {
+    if( !Auth.TwoFAStatus) return res.status(403).json({ message: "2 faktörlü doğrulama tamamlanmamış, lütfen tekrar deneyiniz. " });
+    if( Auth.Password !== Sha256Crypto(Password, Auth._id.toString())) {
 
       await newLogFunction(req, res, { Id: Auth._id.toString(), Type:'Failed_Login'});
       return res.status(401).json({ message: " Email veya şifreniz hatalı, lütfen tekrar deneyiniz. " });
@@ -495,17 +535,16 @@ app.post(
 
     var trustedDevices = Auth.TrustedDevices ? Auth.TrustedDevices : [];
 
-    if(trustedDevices.length){
+    if( !trustedDevices.length && IsRemindDeviceActive === true) trustedDevices.push(EncryptedDeviceDetails);
+    if( trustedDevices.length){
       trustedDevices.forEach(function(row){
         if( aes256Decrypt(row.DeviceId, Auth._id.toString()) === DeviceDetails.DeviceId) {
-          if(IsRemindDeviceActive === true ) Object.assign(row, EncryptedDeviceDetails);
+          if( IsRemindDeviceActive === true ) Object.assign(row, EncryptedDeviceDetails);
           else trustedDevices = trustedDevices.filter(function(item){ return  aes256Decrypt(item.DeviceId, Auth._id.toString()) !== DeviceDetails.DeviceId});
         }else{
           trustedDevices.push(EncryptedDeviceDetails);
         }
       });
-    }else{
-      if(IsRemindDeviceActive === true) trustedDevices.push(EncryptedDeviceDetails);
     }
 
     var update = {
