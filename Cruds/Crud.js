@@ -815,11 +815,16 @@ app.put(
     var { Notes } = req.body;
     if( !Notes.length) return res.status(404).json({ message:' İşleminize devam edebilmek için lütfen not seçiniz. '});
 
+    console.log("Ön Yüzden Seçilen Notlar : ", JSON.stringify(Notes));
     var Auth = await GetAuthDetails(req, res);
     if( !Auth) return res.status(404).json({ message:' Kullanıcı bulunamadı, lütfen daha sonra tekrar deneyiniz.'});
 
     for(var note of Notes){
-      if( Auth._id.toString() === note["UserId"]) await Note.findByIdAndDelete(note["_id"].toString());
+      console.log("Note : ", JSON.stringify(note));
+      if( Auth._id.toString() === note["UserId"]) {
+        console.log("Silinecek Dosya : ", JSON.stringify(note));
+        await Note.findByIdAndDelete(note["_id"].toString());
+      }
     };
 
     return res.status(204);
