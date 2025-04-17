@@ -813,41 +813,27 @@ app.put(
   AuthenticateJWTToken,
   asyncHandler(async (req, res) => {
     var { Notes } = req.body;
-    if (!Notes.length) {
-      return res
-        .status(400)
-        .json({ message: 'İşleminize devam edebilmek için lütfen not seçiniz.' });
-    }
+    if (!Notes.length) return res.status(400).json({ message: 'İşleminize devam edebilmek için lütfen not seçiniz.' });
 
-    var idsToDelete = Notes
-      .map(n => n._id)
-      .filter(id => mongoose.Types.ObjectId.isValid(id))
-      .map(id => id.toString());
+    //var idsToDelete = Notes.map(n => n._id).filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => id.toString());
+    var idsToDelete = [];
 
-    if (idsToDelete.length === 0) {
-      return res
-        .status(400)
-        .json({ message: 'Geçersiz not ID’leri gönderildi.' });
-    }
-
-    var Auth = await GetAuthDetails(req, res);
-    if (!Auth) {
-      return res
-        .status(404)
-        .json({ message: 'Kullanıcı bulunamadı, lütfen daha sonra tekrar deneyiniz.' });
-    }
-
-    var result = await Note.deleteMany({
-      _id: { $in: idsToDelete },
-      UserId: Auth._id.toString()
+    Notes.forEach(function(note) {
+      var id = note._id;
+      if (mongoose.Types.ObjectId.isValid(id)) idsToDelete.push(id.toString());
     });
 
-    const cacheKey = `Notes:${Auth.EMailAddress}`;
+    if (idsToDelete.length === 0) return res.status(400).json({ message: 'Geçersiz not ID’leri gönderildi.' });
+
+    var Auth = await GetAuthDetails(req, res);
+    if (!Auth) return res.status(404).json({ message: 'Kullanıcı bulunamadı, lütfen daha sonra tekrar deneyiniz.' });
+
+    var result = await Note.deleteMany({_id: { $in: idsToDelete }, UserId: Auth._id.toString()});
+
+    var cacheKey = `Notes:${Auth.EMailAddress}`;
     var NotesInCache = ServerCache.get(cacheKey) || [];
     if (NotesInCache.length) {
-      NotesInCache = NotesInCache.filter(
-        item => !idsToDelete.includes(item._id.toString())
-      );
+      NotesInCache = NotesInCache.filter(item => !idsToDelete.includes(item._id.toString()));
       ServerCache.set(cacheKey, NotesInCache);
     }
 
