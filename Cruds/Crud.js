@@ -805,7 +805,7 @@ app.delete(
 );
 
 //Seçili notları sil
-app.delete(
+app.put(
   '/delete-notes/:EMailAddress',
   rateLimiter,
   EMailAddressControl,
