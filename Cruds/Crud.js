@@ -821,16 +821,16 @@ app.put(
     var cacheKey = `Notes:${Auth.EMailAddress}`;
     var NotesInCache = ServerCache.get(cacheKey);
 
-    for(var note of Notes){
-      if( Auth._id.toString() === note["UserId"]) {
-        await Note.findOneAndDelete({ _id: note["_id"].toString()});
+    Notes.forEach( async function(row) {
+      if( Auth._id.toString() === row["UserId"].toString()) {
+        await Note.findByIdAndDelete(row["_id"].toString());
 
         if(NotesInCache){
-          NotesInCache = NotesInCache.filter(function(item){ return item._id !== note["_id"].toString()});
+          NotesInCache = NotesInCache.filter(function(item){ return item._id !== row["_id"].toString()});
           ServerCache.set(cacheKey, NotesInCache);
         }
       }
-    };
+    });
 
     return res.status(200).json({message:' Seçili notlar başarıyla silindi. ', Notes: Notes.map(function(row){ return row._id})});
   })
