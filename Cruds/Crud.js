@@ -823,13 +823,10 @@ app.put(
 
     for(var note of Notes){
       if( Auth._id.toString() === note["UserId"]) {
-        await Note.findByIdAndDelete(note["_id"].toString());
+        await Note.findOneAndDelete({ _id: note["_id"].toString()});
 
         if(NotesInCache){
-          console.log("Filtrelenmemiş NotesInCache : ", JSON.stringify(NotesInCache));
           NotesInCache = NotesInCache.filter(function(item){ return item._id !== note["_id"].toString()});
-          console.log("Silinecek Not Id : ", note["_id"].toString());
-          console.log("Filtrelenmiş NotesInCache : ", JSON.stringify(NotesInCache));
           ServerCache.set(cacheKey, NotesInCache);
         }
       }
