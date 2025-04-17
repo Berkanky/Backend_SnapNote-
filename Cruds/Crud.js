@@ -815,15 +815,22 @@ app.put(
     var { Notes } = req.body;
     if( !Notes.length) return res.status(404).json({ message:' İşleminize devam edebilmek için lütfen not seçiniz. '});
 
-    console.log("Ön Yüzden Seçilen Notlar : ", JSON.stringify(Notes));
     var Auth = await GetAuthDetails(req, res);
     if( !Auth) return res.status(404).json({ message:' Kullanıcı bulunamadı, lütfen daha sonra tekrar deneyiniz.'});
 
+    var cacheKey = `Notes:${Auth.EMailAddress}`;
+    var NotesInCache = ServerCache.get(cacheKey);
+
     for(var note of Notes){
-      console.log("Note : ", JSON.stringify(note));
       if( Auth._id.toString() === note["UserId"]) {
-        console.log("Silinecek Dosya : ", JSON.stringify(note));
         await Note.findByIdAndDelete(note["_id"].toString());
+
+        if(NotesInCache){
+          console.log("Filtrelenmemiş NotesInCache : ", JSON.stringify(NotesInCache));
+          NotesInCache = NotesInCache.filter(function(item){ return item._id !== note._id});
+
+          ServerCache.set(cacheKey, NotesInCache);
+        }
       }
     };
 
