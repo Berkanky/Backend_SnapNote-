@@ -815,6 +815,7 @@ app.put(
     if( !Notes.length) return res.status(404).json({ message:' İşleminize devam edebilmek için lütfen not seçiniz. '});
     console.log("İstemciden Gelen Notlar : ", JSON.stringify(Notes));
     var Auth = await GetAuthDetails(req, res);
+    console.log("Bulunan Auth : ", JSON.stringify(Auth));
     if( !Auth) return res.status(404).json({ message:' Kullanıcı bulunamadı, lütfen daha sonra tekrar deneyiniz.'});
 
     var cacheKey = `Notes:${Auth.EMailAddress}`;
