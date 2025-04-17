@@ -820,14 +820,14 @@ app.put(
     var cacheKey = `Notes:${Auth.EMailAddress}`;
     var NotesInCache = ServerCache.get(cacheKey);
 
-    for (const row of Notes) {
+    /* for (var row of Notes) {
       if (row.UserId.toString() === Auth._id.toString()) {
         var deleted = await Note.findByIdAndDelete(row._id.toString())
         if (deleted && NotesInCache) {
           NotesInCache = NotesInCache.filter(item => item._id.toString() !== row._id.toString())
         }
       }
-    }
+    } */
     console.log("Sil işlemi sonrası NotesInCache : ", JSON.stringify(NotesInCache));
     ServerCache.set(cacheKey, NotesInCache);
 
