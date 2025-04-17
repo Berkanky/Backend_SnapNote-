@@ -813,7 +813,7 @@ app.put(
   asyncHandler( async( req, res) => {
     var { Notes } = req.body;
     if( !Notes.length) return res.status(404).json({ message:' İşleminize devam edebilmek için lütfen not seçiniz. '});
-
+    console.log("İstemciden Gelen Notlar : ", JSON.stringify(Notes));
     var Auth = await GetAuthDetails(req, res);
     if( !Auth) return res.status(404).json({ message:' Kullanıcı bulunamadı, lütfen daha sonra tekrar deneyiniz.'});
 
