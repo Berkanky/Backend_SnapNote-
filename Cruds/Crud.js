@@ -820,7 +820,7 @@ app.put(
 
     Notes.forEach(function(note) {
       var id = note._id;
-      if (mongoose.Types.ObjectId.isValid(id)) idsToDelete.push(id.toString());
+      idsToDelete.push(id.toString());
     });
 
     if (idsToDelete.length === 0) return res.status(400).json({ message: 'Geçersiz not ID’leri gönderildi.' });
