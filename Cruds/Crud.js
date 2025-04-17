@@ -834,7 +834,7 @@ app.put(
       }
     };
 
-    return res.status(204);
+    return res.status(200).json({message:' Seçili notlar başarıyla silindi. ', Notes: Notes.map(function(row){ return row._id})});
   })
 );
 
