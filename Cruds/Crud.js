@@ -694,7 +694,7 @@ app.get(
 
     var NoteFilter = {UserId: Auth._id.toString()};
     var Notes = await Note.find(NoteFilter).lean();
-    
+
     Notes.forEach(function(note){
       
       note.TextContent = aes256Decrypt(note.TextContent, Auth._id.toString());
@@ -714,7 +714,6 @@ app.get(
     });
 
     ServerCache.set(cacheKey, Notes);
-
     return res.status(200).json({ message:' Notlar başarıyla getirildi. ', Notes});
   })
 );
@@ -822,11 +821,12 @@ app.put(
     var NotesInCache = ServerCache.get(cacheKey);
 
     Notes.forEach( async function(row) {
-
+      console.log("Note : ", JSON.stringify(row));
       if( Auth._id.toString() === row["UserId"].toString()) {
-        await Note.findByIdAndDelete(row["_id"].toString());
-
-        if( NotesInCache) NotesInCache = NotesInCache.filter(function(item){ return item._id.toString() !== row["_id"].toString()});
+        var deletedNote = await Note.findByIdAndDelete(row["_id"].toString());
+        if(deletedNote){
+          if( NotesInCache) NotesInCache = NotesInCache.filter(function(item){ return item._id.toString() !== row["_id"].toString()});
+        }
       }
     });
     console.log("Sil işlemi sonrası NotesInCache : ", JSON.stringify(NotesInCache));
