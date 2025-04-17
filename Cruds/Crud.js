@@ -803,38 +803,60 @@ app.delete(
   })
 );
 
-//Seçili notları sil
+// Seçili notları sil
 app.put(
   '/delete-notes/:EMailAddress',
   rateLimiter,
   EMailAddressControl,
   AuthControl,
   AuthenticateJWTToken,
-  asyncHandler( async( req, res) => {
+  asyncHandler(async (req, res) => {
     var { Notes } = req.body;
-    if( !Notes.length) return res.status(404).json({ message:' İşleminize devam edebilmek için lütfen not seçiniz. '});
-    console.log("İstemciden Gelen Notlar : ", JSON.stringify(Notes));
+    if (!Notes.length) {
+      return res
+        .status(400)
+        .json({ message: 'İşleminize devam edebilmek için lütfen not seçiniz.' });
+    }
+
+    var idsToDelete = Notes
+      .map(n => n._id)
+      .filter(id => mongoose.Types.ObjectId.isValid(id))
+      .map(id => id.toString());
+
+    if (idsToDelete.length === 0) {
+      return res
+        .status(400)
+        .json({ message: 'Geçersiz not ID’leri gönderildi.' });
+    }
+
     var Auth = await GetAuthDetails(req, res);
-    console.log("Bulunan Auth : ", JSON.stringify(Auth));
-    if( !Auth) return res.status(404).json({ message:' Kullanıcı bulunamadı, lütfen daha sonra tekrar deneyiniz.'});
+    if (!Auth) {
+      return res
+        .status(404)
+        .json({ message: 'Kullanıcı bulunamadı, lütfen daha sonra tekrar deneyiniz.' });
+    }
 
-    var cacheKey = `Notes:${Auth.EMailAddress}`;
-    var NotesInCache = ServerCache.get(cacheKey);
+    var result = await Note.deleteMany({
+      _id: { $in: idsToDelete },
+      UserId: Auth._id.toString()
+    });
 
-    /* for (var row of Notes) {
-      if (row.UserId.toString() === Auth._id.toString()) {
-        var deleted = await Note.findByIdAndDelete(row._id.toString())
-        if (deleted && NotesInCache) {
-          NotesInCache = NotesInCache.filter(item => item._id.toString() !== row._id.toString())
-        }
-      }
-    } */
-    console.log("Sil işlemi sonrası NotesInCache : ", JSON.stringify(NotesInCache));
-    ServerCache.set(cacheKey, NotesInCache);
+    const cacheKey = `Notes:${Auth.EMailAddress}`;
+    var NotesInCache = ServerCache.get(cacheKey) || [];
+    if (NotesInCache.length) {
+      NotesInCache = NotesInCache.filter(
+        item => !idsToDelete.includes(item._id.toString())
+      );
+      ServerCache.set(cacheKey, NotesInCache);
+    }
 
-    return res.status(200).json({message:' Seçili notlar başarıyla silindi. ', Notes: Notes.map(function(row){ return row._id})});
+    return res.status(200).json({
+      message: `Toplam ${result.deletedCount} not başarıyla silindi.`,
+      deletedIds: idsToDelete
+    });
   })
 );
+
 
 //Seçili notu güncelle
 app.put(
