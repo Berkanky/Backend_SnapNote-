@@ -814,7 +814,7 @@ app.put(
   asyncHandler( async( req, res) => {
     var { Notes } = req.body;
     if( !Notes.length) return res.status(404).json({ message:' İşleminize devam edebilmek için lütfen not seçiniz. '});
-
+    console.log("Ön Yüzden Gelen Seçilmiş Notlar : ", JSON.stringify(Notes));
     var Auth = await GetAuthDetails(req, res);
     if( !Auth) return res.status(404).json({ message:' Kullanıcı bulunamadı, lütfen daha sonra tekrar deneyiniz.'});
 
@@ -822,6 +822,9 @@ app.put(
     var NotesInCache = ServerCache.get(cacheKey);
 
     Notes.forEach( async function(row) {
+      console.log("Kullanıcı ID : ", Auth._id.toString());
+      console.log("Not User ID : ", JSON.stringify(row));
+
       if( Auth._id.toString() === row["UserId"].toString()) {
         await Note.findByIdAndDelete(row["_id"].toString());
 
