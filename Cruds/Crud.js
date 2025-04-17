@@ -804,6 +804,28 @@ app.delete(
   })
 );
 
+//Seçili notları sil
+app.delete(
+  '/delete-notes/:EMailAddress',
+  rateLimiter,
+  EMailAddressControl,
+  AuthControl,
+  AuthenticateJWTToken,
+  asyncHandler( async( req, res) => {
+    var { Notes } = req.body;
+    if( !Notes.length) return res.status(404).json({ message:' İşleminize devam edebilmek için lütfen not seçiniz. '});
+
+    var Auth = await GetAuthDetails(req, res);
+    if( !Auth) return res.status(404).json({ message:' Kullanıcı bulunamadı, lütfen daha sonra tekrar deneyiniz.'});
+
+    for(var note of Notes){
+      if( Auth._id.toString() === note["UserId"]) await Note.findByIdAndDelete(note["_id"].toString());
+    };
+
+    return res.status(204);
+  })
+);
+
 //Seçili notu güncelle
 app.put(
   "/update-selected-note/:EMailAddress/:Id",
