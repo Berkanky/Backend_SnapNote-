@@ -830,11 +830,13 @@ app.put(
 
         if(NotesInCache){
           NotesInCache = NotesInCache.filter(function(item){ return item._id !== row["_id"].toString()});
-          ServerCache.set(cacheKey, NotesInCache);
+          
         }
       }
     });
 
+    ServerCache.set(cacheKey, NotesInCache);
+    
     return res.status(200).json({message:' Seçili notlar başarıyla silindi. ', Notes: Notes.map(function(row){ return row._id})});
   })
 );
