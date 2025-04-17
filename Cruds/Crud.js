@@ -827,7 +827,8 @@ app.put(
 
         if(NotesInCache){
           console.log("Filtrelenmemiş NotesInCache : ", JSON.stringify(NotesInCache));
-          NotesInCache = NotesInCache.filter(function(item){ return item._id !== note._id});
+          NotesInCache = NotesInCache.filter(function(item){ return item._id !== note["_id"].toString()});
+          console.log("Silinecek Not Id : ", note["_id"].toString());
           console.log("Filtrelenmiş NotesInCache : ", JSON.stringify(NotesInCache));
           ServerCache.set(cacheKey, NotesInCache);
         }
