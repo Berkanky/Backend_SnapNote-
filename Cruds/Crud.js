@@ -1,6 +1,5 @@
 const express = require("express");
 const app = express.Router();
-const mongoose = require("mongoose");
 
 //Node-Cache.
 const NodeCache = require( "node-cache" );
@@ -815,7 +814,6 @@ app.put(
     var { Notes } = req.body;
     if (!Notes.length) return res.status(400).json({ message: 'İşleminize devam edebilmek için lütfen not seçiniz.' });
 
-    //var idsToDelete = Notes.map(n => n._id).filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => id.toString());
     var idsToDelete = [];
 
     Notes.forEach(function(note) {
